@@ -1,4 +1,5 @@
 use poise::serenity_prelude as serenity;
+use crate::context::ServiceContext;
 
 struct Data {} // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -16,7 +17,7 @@ async fn age(
     Ok(())
 }
 
-pub async fn serve() {
+pub async fn serve(_: ServiceContext) {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
     let intents = serenity::GatewayIntents::non_privileged();
 

@@ -1,8 +1,13 @@
-use axum::{response::Html, routing::get, Router};
+use crate::context::ServiceContext;
+use crate::gerrit::connection::GerritConnection;
+use axum::{response::Html, routing::get, Extension, Router};
+use tower::ServiceBuilder;
 
-pub async fn serve() {
+pub async fn serve(context: ServiceContext) {
     // build our application with a route
-    let app = Router::new().route("/", get(root));
+    let app = Router::new()
+        .route("/", get(root))
+        .layer(ServiceBuilder::new().layer(Extension(context)));
 
     // run it
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
@@ -12,7 +17,9 @@ pub async fn serve() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn root() -> Html<String> {
-    let username = std::env::var("GERRIT_USERNAME").expect("USERNAME must be set");
-    Html(std::format!("Hello, {}!", username))
+async fn root(Extension(context): Extension<ServiceContext>) -> Html<String> {
+    Html(std::format!(
+        "Connecting to Gerrit as '{}'!",
+        context.gerrit.get_username()
+    ))
 }
