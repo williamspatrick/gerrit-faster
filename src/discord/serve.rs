@@ -1,29 +1,27 @@
-use poise::serenity_prelude as serenity;
 use crate::context::ServiceContext;
+use crate::gerrit::connection::GerritConnection;
+use poise::serenity_prelude as serenity;
 
-struct Data {} // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;
-type Context<'a> = poise::Context<'a, Data, Error>;
+type Context<'a> = poise::Context<'a, ServiceContext, Error>;
 
-/// Displays your or another user's account creation date
-#[poise::command(slash_command, prefix_command)]
-async fn age(
-    ctx: Context<'_>,
-    #[description = "Selected user"] user: Option<serenity::User>,
-) -> Result<(), Error> {
-    let u = user.as_ref().unwrap_or_else(|| ctx.author());
-    let response = format!("{}'s account was created at {}", u.name, u.created_at());
+// Get the status of the service.
+#[poise::command(slash_command, prefix_command, rename = "obmc-service-status")]
+async fn service_status(ctx: Context<'_>) -> Result<(), Error> {
+    let service = ctx.data();
+
+    let response = format!("Running as '{}'", service.gerrit.get_username());
     ctx.say(response).await?;
     Ok(())
 }
 
-pub async fn serve(_: ServiceContext) {
+pub async fn serve(context: ServiceContext) {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
     let intents = serenity::GatewayIntents::non_privileged();
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![age()],
+            commands: vec![service_status()],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
@@ -35,7 +33,7 @@ pub async fn serve(_: ServiceContext) {
                     guild.id.edit_nickname(ctx, Some("openbmc-bot")).await?;
                 }
 
-                Ok(Data {})
+                Ok(context)
             })
         })
         .build();
