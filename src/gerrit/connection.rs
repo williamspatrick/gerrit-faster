@@ -10,7 +10,10 @@ pub struct Connection {
     password: String,
 }
 
-pub type SharedConnection = Arc<Mutex<Connection>>;
+#[derive(Clone, Debug)]
+pub struct SharedConnection {
+    connection: Arc<Mutex<Connection>>,
+}
 
 impl Clone for Connection {
     fn clone(&self) -> Connection {
@@ -32,16 +35,18 @@ impl fmt::Debug for Connection {
 
 impl GerritConnection for SharedConnection {
     fn get_username(&self) -> String {
-        self.lock().unwrap().username.clone()
+        self.connection.lock().unwrap().username.clone()
     }
 }
 
 pub fn new() -> SharedConnection {
-    return Arc::new(Mutex::new(
-        Connection {
-            username: std::env::var("GERRIT_USERNAME").expect("GERRIT_USERNAME must be set"),
-            password: std::env::var("GERRIT_PASSWORD").expect("GERRIT_PASSWORD must be set"),
-        }
-        .clone(),
-    ));
+    return SharedConnection {
+        connection: Arc::new(Mutex::new(
+            Connection {
+                username: std::env::var("GERRIT_USERNAME").expect("GERRIT_USERNAME must be set"),
+                password: std::env::var("GERRIT_PASSWORD").expect("GERRIT_PASSWORD must be set"),
+            }
+            .clone(),
+        )),
+    };
 }
