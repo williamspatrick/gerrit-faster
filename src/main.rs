@@ -1,6 +1,7 @@
 use dotenv::dotenv;
 use gerrit_faster::context::ServiceContext;
 use gerrit_faster::discord::serve as discord;
+use gerrit_faster::gerrit::connection::GerritConnection;
 use gerrit_faster::webserver::serve as webserver;
 use tokio;
 use tracing::info;
@@ -17,6 +18,9 @@ async fn main() {
 
     tokio::join!(
         webserver::serve(context.clone()),
-        discord::serve(context.clone())
+        discord::serve(context.clone()),
+        async {
+            info!("{:?}", context.gerrit.all_open_changes().await.unwrap());
+        }
     );
 }

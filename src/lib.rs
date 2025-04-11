@@ -4,6 +4,7 @@ pub mod discord {
 }
 pub mod gerrit {
     pub mod connection;
+    pub mod data;
 }
 pub mod webserver {
     pub mod serve;

@@ -1,8 +1,12 @@
+use crate::gerrit::data as gerrit_data;
 use std::fmt;
 use std::sync::{Arc, Mutex};
 
+#[async_trait::async_trait]
 pub trait GerritConnection {
     fn get_username(&self) -> String;
+    fn get_password(&self) -> String;
+    async fn all_open_changes(&self) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error>;
 }
 
 pub struct Connection {
@@ -33,9 +37,29 @@ impl fmt::Debug for Connection {
     }
 }
 
+#[async_trait::async_trait]
 impl GerritConnection for SharedConnection {
     fn get_username(&self) -> String {
         self.connection.lock().unwrap().username.clone()
+    }
+
+    fn get_password(&self) -> String {
+        self.connection.lock().unwrap().password.clone()
+    }
+
+    async fn all_open_changes(&self) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error> {
+        let result = reqwest::Client::new()
+            .get("https://gerrit.openbmc.org/a/changes/?q=status:open+-is:wip&no-limit")
+            .basic_auth(self.get_username(), Some(self.get_password()))
+            .send()
+            .await?;
+
+        let text = result.text().await?;
+        // Gerrit requires pruning off the first 4 characters to avoid the
+        // magic: )]}'
+        let pruned = &text[4..];
+
+        Ok(serde_json::from_str::<Vec<gerrit_data::ChangeInfo>>(&pruned).expect("JSON failed"))
     }
 }
 
