@@ -59,7 +59,13 @@ impl GerritConnection for SharedConnection {
         // magic: )]}'
         let pruned = &text[4..];
 
-        Ok(serde_json::from_str::<Vec<gerrit_data::ChangeInfo>>(&pruned).expect("JSON failed"))
+        Ok(
+            serde_json::from_str::<Vec<gerrit_data::ChangeInfoRaw>>(&pruned)
+                .expect("JSON failed")
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
     }
 }
 
