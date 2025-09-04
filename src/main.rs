@@ -20,7 +20,13 @@ async fn main() {
         webserver::serve(context.clone()),
         discord::serve(context.clone()),
         async {
-            info!("{:?}", context.gerrit.all_open_changes().await.unwrap());
+            let changes = context.gerrit.all_open_changes().await.unwrap();
+
+            for change in &changes {
+                info!("Change: {:?}", change);
+            }
+
+            info!("Total Changes: {:?}", changes.len());
         }
     );
 }
