@@ -1,6 +1,7 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::ops::Deref;
 
 #[derive(Deserialize, Debug)]
 pub struct ApprovalInfoRaw {
@@ -8,7 +9,7 @@ pub struct ApprovalInfoRaw {
     pub value: Option<i64>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ApprovalInfo {
     pub username: String,
     pub value: i64,
@@ -30,6 +31,14 @@ pub struct LabelInfoRaw {
 
 #[derive(Debug)]
 pub struct LabelInfo(pub Vec<ApprovalInfo>);
+
+impl Deref for LabelInfo {
+    type Target = Vec<ApprovalInfo>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl From<LabelInfoRaw> for LabelInfo {
     fn from(raw: LabelInfoRaw) -> Self {

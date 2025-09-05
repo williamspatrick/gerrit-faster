@@ -27,7 +27,7 @@ pub trait GerritConnection {
     async fn abandon_change(
         &self,
         change_id: &str,
-        message: Option<&str>,
+        message: String,
     ) -> Result<gerrit_data::ChangeInfo, reqwest::Error>;
 }
 
@@ -101,7 +101,7 @@ impl GerritConnection for SharedConnection {
     async fn abandon_change(
         &self,
         change_id: &str,
-        message: Option<&str>,
+        message: String,
     ) -> Result<gerrit_data::ChangeInfo, reqwest::Error> {
         let url = format!(
             "https://gerrit.openbmc.org/a/changes/{}/abandon",
@@ -109,12 +109,8 @@ impl GerritConnection for SharedConnection {
         );
 
         let mut request_body = serde_json::Map::new();
-        if let Some(msg) = message {
-            request_body.insert(
-                "message".to_string(),
-                serde_json::Value::String(msg.to_string()),
-            );
-        }
+        request_body
+            .insert("message".to_string(), serde_json::Value::String(message));
 
         let result = self
             .execute_request(
