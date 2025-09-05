@@ -88,11 +88,19 @@ impl From<ChangeInfoRaw> for ChangeInfo {
             branch: raw.branch,
             subject: raw.subject,
             created: DateTime::from_naive_utc_and_offset(
-                NaiveDateTime::parse_from_str(&raw.created, "%Y-%m-%d %H:%M:%S%.f").unwrap(),
+                NaiveDateTime::parse_from_str(
+                    &raw.created,
+                    "%Y-%m-%d %H:%M:%S%.f",
+                )
+                .unwrap(),
                 Utc,
             ),
             updated: DateTime::from_naive_utc_and_offset(
-                NaiveDateTime::parse_from_str(&raw.updated, "%Y-%m-%d %H:%M:%S%.f").unwrap(),
+                NaiveDateTime::parse_from_str(
+                    &raw.updated,
+                    "%Y-%m-%d %H:%M:%S%.f",
+                )
+                .unwrap(),
                 Utc,
             ),
             status: raw.status,

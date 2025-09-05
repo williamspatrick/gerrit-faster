@@ -21,7 +21,9 @@ pub trait GerritConnection {
         &self,
         request: reqwest::RequestBuilder,
     ) -> Result<String, reqwest::Error>;
-    async fn all_open_changes(&self) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error>;
+    async fn all_open_changes(
+        &self,
+    ) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error>;
     async fn abandon_change(
         &self,
         change_id: &str,
@@ -81,7 +83,9 @@ impl GerritConnection for SharedConnection {
         ))
     }
 
-    async fn all_open_changes(&self) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error> {
+    async fn all_open_changes(
+        &self,
+    ) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error> {
         let result = self.execute_request(reqwest::Client::new()
             .get("https://gerrit.openbmc.org/a/changes/?q=status:open+-is:wip&o=LABELS&o=DETAILED_ACCOUNTS&no-limit")).await?;
 
@@ -99,7 +103,10 @@ impl GerritConnection for SharedConnection {
         change_id: &str,
         message: Option<&str>,
     ) -> Result<gerrit_data::ChangeInfo, reqwest::Error> {
-        let url = format!("https://gerrit.openbmc.org/a/changes/{}/abandon", change_id);
+        let url = format!(
+            "https://gerrit.openbmc.org/a/changes/{}/abandon",
+            change_id
+        );
 
         let mut request_body = serde_json::Map::new();
         if let Some(msg) = message {
@@ -128,8 +135,10 @@ pub fn new() -> SharedConnection {
     return SharedConnection {
         connection: Arc::new(Mutex::new(
             Connection {
-                username: std::env::var("GERRIT_USERNAME").expect("GERRIT_USERNAME must be set"),
-                password: std::env::var("GERRIT_PASSWORD").expect("GERRIT_PASSWORD must be set"),
+                username: std::env::var("GERRIT_USERNAME")
+                    .expect("GERRIT_USERNAME must be set"),
+                password: std::env::var("GERRIT_PASSWORD")
+                    .expect("GERRIT_PASSWORD must be set"),
             }
             .clone(),
         )),
