@@ -3,30 +3,17 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::ops::Deref;
 
-#[derive(Deserialize, Debug)]
-pub struct ApprovalInfoRaw {
-    pub username: String,
-    pub value: Option<i64>,
-}
-
-#[derive(Clone, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ApprovalInfo {
     pub username: String,
+    #[serde(default)]
     pub value: i64,
-}
-
-impl From<ApprovalInfoRaw> for ApprovalInfo {
-    fn from(raw: ApprovalInfoRaw) -> Self {
-        ApprovalInfo {
-            username: raw.username,
-            value: raw.value.unwrap_or(0),
-        }
-    }
 }
 
 #[derive(Deserialize, Debug)]
 pub struct LabelInfoRaw {
-    pub all: Option<Vec<ApprovalInfoRaw>>,
+    #[serde(default)]
+    pub all: Vec<ApprovalInfo>,
 }
 
 #[derive(Debug)]
@@ -42,13 +29,7 @@ impl Deref for LabelInfo {
 
 impl From<LabelInfoRaw> for LabelInfo {
     fn from(raw: LabelInfoRaw) -> Self {
-        LabelInfo(
-            raw.all
-                .unwrap_or(Vec::<ApprovalInfoRaw>::new())
-                .into_iter()
-                .map(Into::into)
-                .collect(),
-        )
+        LabelInfo(raw.all.clone())
     }
 }
 
@@ -65,9 +46,11 @@ pub struct ChangeInfoRaw {
     pub updated: String,
 
     pub status: String,
-    pub work_in_progress: Option<bool>,
+    #[serde(default)]
+    pub work_in_progress: bool,
 
-    pub labels: Option<HashMap<String, LabelInfoRaw>>,
+    #[serde(default)]
+    pub labels: HashMap<String, LabelInfoRaw>,
 }
 
 #[derive(Debug)]
@@ -113,10 +96,9 @@ impl From<ChangeInfoRaw> for ChangeInfo {
                 Utc,
             ),
             status: raw.status,
-            work_in_progress: raw.work_in_progress.unwrap_or(false),
+            work_in_progress: raw.work_in_progress,
             labels: raw
                 .labels
-                .unwrap_or(HashMap::<String, LabelInfoRaw>::new())
                 .into_iter()
                 .map(|(key, value)| (key, Into::into(value)))
                 .collect(),
