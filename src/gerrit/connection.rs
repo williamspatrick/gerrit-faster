@@ -3,6 +3,16 @@ use serde_json;
 use std::fmt;
 use std::sync::{Arc, Mutex};
 
+/* Gerrit JSON responses have a magic at the beginning that needs to be
+ * stripped. */
+fn prune_magic(text: String) -> String {
+    const MAGIC_PREFIX: &str = ")]}'";
+    if text.starts_with(MAGIC_PREFIX) {
+        return text[MAGIC_PREFIX.len()..].to_string();
+    }
+    text
+}
+
 #[async_trait::async_trait]
 pub trait GerritConnection {
     fn get_username(&self) -> String;
@@ -60,14 +70,10 @@ impl GerritConnection for SharedConnection {
             .send()
             .await?;
 
-        let text = result.text().await?;
-
-        // Gerrit requires pruning off the first 4 characters to avoid the
-        // magic: )]}'
-        let pruned = &text[4..];
+        let text = prune_magic(result.text().await?);
 
         Ok(
-            serde_json::from_str::<Vec<gerrit_data::ChangeInfoRaw>>(&pruned)
+            serde_json::from_str::<Vec<gerrit_data::ChangeInfoRaw>>(&text)
                 .expect("JSON failed")
                 .into_iter()
                 .map(Into::into)
@@ -101,13 +107,9 @@ impl GerritConnection for SharedConnection {
         }
 
         let result = request.send().await?;
-        let text = result.text().await?;
+        let text = prune_magic(result.text().await?);
 
-        // Gerrit requires pruning off the first 4 characters to avoid the
-        // magic: )]}'
-        let pruned = &text[4..];
-
-        Ok(serde_json::from_str::<gerrit_data::ChangeInfoRaw>(&pruned)
+        Ok(serde_json::from_str::<gerrit_data::ChangeInfoRaw>(&text)
             .expect("JSON failed")
             .into())
     }
