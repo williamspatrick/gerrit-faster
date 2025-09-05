@@ -49,7 +49,7 @@ impl GerritConnection for SharedConnection {
 
     async fn all_open_changes(&self) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error> {
         let result = reqwest::Client::new()
-            .get("https://gerrit.openbmc.org/a/changes/?q=status:open+-is:wip&no-limit")
+            .get("https://gerrit.openbmc.org/a/changes/?q=status:open+-is:wip&o=LABELS&o=DETAILED_ACCOUNTS&no-limit")
             .basic_auth(self.get_username(), Some(self.get_password()))
             .send()
             .await?;
