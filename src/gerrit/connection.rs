@@ -1,4 +1,5 @@
 use crate::gerrit::data as gerrit_data;
+use serde_json;
 use std::fmt;
 use std::sync::{Arc, Mutex};
 
@@ -7,6 +8,11 @@ pub trait GerritConnection {
     fn get_username(&self) -> String;
     fn get_password(&self) -> String;
     async fn all_open_changes(&self) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error>;
+    async fn abandon_change(
+        &self,
+        change_id: &str,
+        message: Option<&str>,
+    ) -> Result<gerrit_data::ChangeInfo, reqwest::Error>;
 }
 
 pub struct Connection {
@@ -55,6 +61,7 @@ impl GerritConnection for SharedConnection {
             .await?;
 
         let text = result.text().await?;
+
         // Gerrit requires pruning off the first 4 characters to avoid the
         // magic: )]}'
         let pruned = &text[4..];
@@ -66,6 +73,43 @@ impl GerritConnection for SharedConnection {
                 .map(Into::into)
                 .collect(),
         )
+    }
+
+    async fn abandon_change(
+        &self,
+        change_id: &str,
+        message: Option<&str>,
+    ) -> Result<gerrit_data::ChangeInfo, reqwest::Error> {
+        let url = format!("https://gerrit.openbmc.org/a/changes/{}/abandon", change_id);
+
+        let mut request_body = serde_json::Map::new();
+        if let Some(msg) = message {
+            request_body.insert(
+                "message".to_string(),
+                serde_json::Value::String(msg.to_string()),
+            );
+        }
+
+        let client = reqwest::Client::new();
+        let mut request = client
+            .post(&url)
+            .basic_auth(self.get_username(), Some(self.get_password()))
+            .header("Content-Type", "application/json");
+
+        if !request_body.is_empty() {
+            request = request.json(&request_body);
+        }
+
+        let result = request.send().await?;
+        let text = result.text().await?;
+
+        // Gerrit requires pruning off the first 4 characters to avoid the
+        // magic: )]}'
+        let pruned = &text[4..];
+
+        Ok(serde_json::from_str::<gerrit_data::ChangeInfoRaw>(&pruned)
+            .expect("JSON failed")
+            .into())
     }
 }
 
