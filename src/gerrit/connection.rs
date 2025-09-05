@@ -17,6 +17,10 @@ fn prune_magic(text: String) -> String {
 pub trait GerritConnection {
     fn get_username(&self) -> String;
     fn get_password(&self) -> String;
+    async fn execute_request(
+        &self,
+        request: reqwest::RequestBuilder,
+    ) -> Result<String, reqwest::Error>;
     async fn all_open_changes(&self) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error>;
     async fn abandon_change(
         &self,
@@ -63,17 +67,26 @@ impl GerritConnection for SharedConnection {
         self.connection.lock().unwrap().password.clone()
     }
 
-    async fn all_open_changes(&self) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error> {
-        let result = reqwest::Client::new()
-            .get("https://gerrit.openbmc.org/a/changes/?q=status:open+-is:wip&o=LABELS&o=DETAILED_ACCOUNTS&no-limit")
-            .basic_auth(self.get_username(), Some(self.get_password()))
-            .send()
-            .await?;
+    async fn execute_request(
+        &self,
+        request: reqwest::RequestBuilder,
+    ) -> Result<String, reqwest::Error> {
+        Ok(prune_magic(
+            request
+                .basic_auth(self.get_username(), Some(self.get_password()))
+                .send()
+                .await?
+                .text()
+                .await?,
+        ))
+    }
 
-        let text = prune_magic(result.text().await?);
+    async fn all_open_changes(&self) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error> {
+        let result = self.execute_request(reqwest::Client::new()
+            .get("https://gerrit.openbmc.org/a/changes/?q=status:open+-is:wip&o=LABELS&o=DETAILED_ACCOUNTS&no-limit")).await?;
 
         Ok(
-            serde_json::from_str::<Vec<gerrit_data::ChangeInfoRaw>>(&text)
+            serde_json::from_str::<Vec<gerrit_data::ChangeInfoRaw>>(&result)
                 .expect("JSON failed")
                 .into_iter()
                 .map(Into::into)
@@ -96,20 +109,16 @@ impl GerritConnection for SharedConnection {
             );
         }
 
-        let client = reqwest::Client::new();
-        let mut request = client
-            .post(&url)
-            .basic_auth(self.get_username(), Some(self.get_password()))
-            .header("Content-Type", "application/json");
+        let result = self
+            .execute_request(
+                reqwest::Client::new()
+                    .post(&url)
+                    .header("Content-Type", "application/json")
+                    .json(&request_body),
+            )
+            .await?;
 
-        if !request_body.is_empty() {
-            request = request.json(&request_body);
-        }
-
-        let result = request.send().await?;
-        let text = prune_magic(result.text().await?);
-
-        Ok(serde_json::from_str::<gerrit_data::ChangeInfoRaw>(&text)
+        Ok(serde_json::from_str::<gerrit_data::ChangeInfoRaw>(&result)
             .expect("JSON failed")
             .into())
     }
