@@ -48,6 +48,8 @@ pub struct ChangeInfoRaw {
     pub status: String,
     #[serde(default)]
     pub work_in_progress: bool,
+    #[serde(default)]
+    pub unresolved_comment_count: u64,
 
     #[serde(default)]
     pub labels: HashMap<String, LabelInfoRaw>,
@@ -67,6 +69,7 @@ pub struct ChangeInfo {
 
     pub status: String,
     pub work_in_progress: bool,
+    pub unresolved_comment_count: u64,
 
     pub labels: HashMap<String, LabelInfo>,
 }
@@ -97,6 +100,7 @@ impl From<ChangeInfoRaw> for ChangeInfo {
             ),
             status: raw.status,
             work_in_progress: raw.work_in_progress,
+            unresolved_comment_count: raw.unresolved_comment_count,
             labels: raw
                 .labels
                 .into_iter()
