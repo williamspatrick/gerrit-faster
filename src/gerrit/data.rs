@@ -16,7 +16,7 @@ pub struct LabelInfoRaw {
     pub all: Vec<ApprovalInfo>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LabelInfo(pub Vec<ApprovalInfo>);
 
 impl Deref for LabelInfo {
@@ -53,7 +53,7 @@ pub struct ChangeInfoRaw {
     pub labels: HashMap<String, LabelInfoRaw>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ChangeInfo {
     pub id: String,
     pub change_id: String,

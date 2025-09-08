@@ -96,12 +96,12 @@ async fn abandon_older_than_one_year_and_bad_ci(
     false
 }
 
-pub async fn serve(context: ServiceContext) {
+pub async fn serve(mut context: ServiceContext) {
     let changes = context.gerrit.all_open_changes().await.unwrap();
     let mut abandoned = 0;
 
     for change in &changes {
-        info!("Change: {:?}", change);
+        context.changes.set(change);
 
         if abandon_older_than_two_years(&context, change).await
             || abandon_older_than_one_year_and_bad_ci(&context, change).await
