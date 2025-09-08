@@ -37,6 +37,7 @@ impl From<LabelInfoRaw> for LabelInfo {
 pub struct ChangeInfoRaw {
     pub id: String,
     pub change_id: String,
+    pub _number: u64,
     pub project: String,
     pub branch: String,
 
@@ -58,6 +59,7 @@ pub struct ChangeInfoRaw {
 #[derive(Debug, Clone)]
 pub struct ChangeInfo {
     pub id: String,
+    pub id_number: u64,
     pub change_id: String,
     pub project: String,
     pub branch: String,
@@ -78,6 +80,7 @@ impl From<ChangeInfoRaw> for ChangeInfo {
     fn from(raw: ChangeInfoRaw) -> Self {
         ChangeInfo {
             id: raw.id,
+            id_number: raw._number,
             change_id: raw.change_id,
             project: raw.project,
             branch: raw.branch,

@@ -12,13 +12,15 @@ pub struct Change {
 
 #[derive(Debug, Clone)]
 pub struct Container {
-    pub changes: HashMap<String, Change>,
+    pub changes: HashMap<u64, Change>,
+    pub changes_by_id: HashMap<String, u64>,
 }
 
 impl Container {
     pub fn new() -> Container {
         Container {
-            changes: HashMap::<String, Change>::new(),
+            changes: HashMap::<u64, Change>::new(),
+            changes_by_id: HashMap::<String, u64>::new(),
         }
     }
 
@@ -26,17 +28,20 @@ impl Container {
         info!("Change: {:?}", change);
         if change.status != "NEW" {
             info!("Dropping due to status={}", change.status);
-            self.changes.remove(&change.id);
+            self.changes.remove(&change.id_number);
+            self.changes_by_id.remove(&change.change_id);
         } else {
             let review_state = Status::review_state(change);
             info!("Change Status = {:?}", review_state);
             self.changes.insert(
-                change.id.clone(),
+                change.id_number,
                 Change {
                     change: change.clone(),
                     review_state: review_state,
                 },
             );
+            self.changes_by_id
+                .insert(change.change_id.clone(), change.id_number);
         }
     }
 }
