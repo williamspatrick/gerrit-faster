@@ -1,6 +1,7 @@
 pub mod changes {
     pub mod container;
     pub mod serve;
+    pub mod status;
 }
 pub mod context;
 pub mod discord {
