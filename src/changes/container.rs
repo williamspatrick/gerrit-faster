@@ -44,4 +44,12 @@ impl Container {
                 .insert(change.change_id.clone(), change.id_number);
         }
     }
+
+    pub fn get(&self, id: u64) -> Option<Change> {
+        self.changes.get(&id).cloned()
+    }
+
+    pub fn get_by_change_id(&self, id: &String) -> Option<Change> {
+        self.get(*self.changes_by_id.get(id)?)
+    }
 }

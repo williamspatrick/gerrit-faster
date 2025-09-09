@@ -1,3 +1,4 @@
+use crate::changes as Changes;
 use crate::context::ServiceContext;
 use crate::gerrit::connection::GerritConnection;
 use poise::serenity_prelude as serenity;
@@ -15,13 +16,43 @@ async fn service_status(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+// Get the the review status of a Gerrit change.
+#[poise::command(slash_command, prefix_command, rename = "obmc-review-status")]
+async fn review_status(
+    ctx: Context<'_>,
+    #[description = "Change ID"] change_id: String,
+) -> Result<(), Error> {
+    let change: Option<Changes::container::Change>;
+    {
+        let changes = &ctx.data().changes.lock().unwrap();
+
+        let id = change_id.parse::<u64>();
+        change = match id {
+            Ok(i) => changes.get(i),
+            _ => changes.get_by_change_id(&change_id),
+        }
+    }
+
+    let response = if change.is_some() {
+        format!(
+            "Change {} is {:?}.",
+            change_id,
+            change.unwrap().review_state
+        )
+    } else {
+        format!("Could not find change: {}", change_id)
+    };
+    ctx.say(response).await?;
+    Ok(())
+}
+
 pub async fn serve(context: ServiceContext) {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
     let intents = serenity::GatewayIntents::non_privileged();
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![service_status()],
+            commands: vec![service_status(), review_status()],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
