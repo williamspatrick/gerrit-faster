@@ -20,6 +20,6 @@ pub async fn serve(context: ServiceContext) {
 async fn root(Extension(context): Extension<ServiceContext>) -> Html<String> {
     Html(std::format!(
         "Connecting to Gerrit as '{}'!",
-        context.gerrit.get_username()
+        context.get_gerrit().get_username()
     ))
 }

@@ -11,7 +11,8 @@ type Context<'a> = poise::Context<'a, ServiceContext, Error>;
 async fn service_status(ctx: Context<'_>) -> Result<(), Error> {
     let service = ctx.data();
 
-    let response = format!("Running as '{}'", service.gerrit.get_username());
+    let response =
+        format!("Running as '{}'", service.get_gerrit().get_username());
     ctx.say(response).await?;
     Ok(())
 }
@@ -24,7 +25,7 @@ async fn review_status(
 ) -> Result<(), Error> {
     let change: Option<Changes::container::Change>;
     {
-        let changes = &ctx.data().changes.lock().unwrap();
+        let changes = &ctx.data().lock().unwrap().changes;
 
         let id = change_id.parse::<u64>();
         change = match id {

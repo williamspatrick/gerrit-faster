@@ -23,7 +23,7 @@ async fn abandon_older_than_two_years(
 
     // Call the abandon_change method
     match context
-            .gerrit
+            .get_gerrit()
             .abandon_change(
                 &change.id,
                 concat!(
@@ -72,7 +72,7 @@ async fn abandon_older_than_one_year_and_bad_ci(
 
     // Call the abandon_change method
     match context
-                .gerrit
+                .get_gerrit()
                 .abandon_change(
                     &change.id,
                     concat!(
@@ -97,13 +97,11 @@ async fn abandon_older_than_one_year_and_bad_ci(
 }
 
 pub async fn serve(context: ServiceContext) {
-    let changes = context.gerrit.all_open_changes().await.unwrap();
+    let changes = context.get_gerrit().all_open_changes().await.unwrap();
     let mut abandoned = 0;
 
-    let mut all_changes = context.changes.lock().unwrap();
-
     for change in &changes {
-        all_changes.set(change);
+        context.lock().unwrap().changes.set(change);
 
         if abandon_older_than_two_years(&context, change).await
             || abandon_older_than_one_year_and_bad_ci(&context, change).await
