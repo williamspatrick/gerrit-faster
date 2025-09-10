@@ -1,7 +1,6 @@
 use crate::gerrit::data as gerrit_data;
 use serde_json;
 use std::fmt;
-use std::sync::{Arc, Mutex};
 
 /* Gerrit JSON responses have a magic at the beginning that needs to be
  * stripped. */
@@ -36,11 +35,6 @@ pub struct Connection {
     password: String,
 }
 
-#[derive(Clone, Debug)]
-pub struct SharedConnection {
-    connection: Arc<Mutex<Connection>>,
-}
-
 impl Clone for Connection {
     fn clone(&self) -> Connection {
         Connection {
@@ -60,13 +54,13 @@ impl fmt::Debug for Connection {
 }
 
 #[async_trait::async_trait]
-impl GerritConnection for SharedConnection {
+impl GerritConnection for Connection {
     fn get_username(&self) -> String {
-        self.connection.lock().unwrap().username.clone()
+        self.username.clone()
     }
 
     fn get_password(&self) -> String {
-        self.connection.lock().unwrap().password.clone()
+        self.password.clone()
     }
 
     async fn execute_request(
@@ -127,16 +121,11 @@ impl GerritConnection for SharedConnection {
     }
 }
 
-pub fn new() -> SharedConnection {
-    return SharedConnection {
-        connection: Arc::new(Mutex::new(
-            Connection {
-                username: std::env::var("GERRIT_USERNAME")
-                    .expect("GERRIT_USERNAME must be set"),
-                password: std::env::var("GERRIT_PASSWORD")
-                    .expect("GERRIT_PASSWORD must be set"),
-            }
-            .clone(),
-        )),
-    };
+pub fn new() -> Connection {
+    Connection {
+        username: std::env::var("GERRIT_USERNAME")
+            .expect("GERRIT_USERNAME must be set"),
+        password: std::env::var("GERRIT_PASSWORD")
+            .expect("GERRIT_PASSWORD must be set"),
+    }
 }

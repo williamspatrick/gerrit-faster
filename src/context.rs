@@ -1,5 +1,5 @@
 use crate::changes::container::Container as Changes;
-use crate::gerrit::connection::SharedConnection as Gerrit;
+use crate::gerrit::connection::Connection as Gerrit;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone)]
