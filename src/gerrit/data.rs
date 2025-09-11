@@ -33,6 +33,22 @@ impl From<LabelInfoRaw> for LabelInfo {
     }
 }
 
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SubmitRecordStatus {
+    Ok,
+    NotReady,
+    Closed,
+    Forced,
+    RuleError,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct SubmitRecord {
+    pub rule_name: String,
+    pub status: SubmitRecordStatus,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct ChangeInfoRaw {
     pub id: String,
@@ -54,6 +70,8 @@ pub struct ChangeInfoRaw {
 
     #[serde(default)]
     pub labels: HashMap<String, LabelInfoRaw>,
+    #[serde(default)]
+    pub submit_records: Vec<SubmitRecord>,
 }
 
 #[derive(Debug, Clone)]
@@ -74,6 +92,7 @@ pub struct ChangeInfo {
     pub unresolved_comment_count: u64,
 
     pub labels: HashMap<String, LabelInfo>,
+    pub submit_records: Vec<SubmitRecord>,
 }
 
 impl From<ChangeInfoRaw> for ChangeInfo {
@@ -109,6 +128,7 @@ impl From<ChangeInfoRaw> for ChangeInfo {
                 .into_iter()
                 .map(|(key, value)| (key, Into::into(value)))
                 .collect(),
+            submit_records: raw.submit_records.clone(),
         }
     }
 }
