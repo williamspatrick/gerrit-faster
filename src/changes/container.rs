@@ -31,14 +31,12 @@ impl Container {
         if change.status != GerritChangeStatus::New {
             if self.changes.contains_key(&change.id_number) {
                 info!("Dropping due to status={:?}", change.status);
-                self.changes.remove(&change.id_number);
-                self.changes_by_id.remove(&change.change_id);
+                self.remove(change);
             }
         } else if change.work_in_progress {
             if self.changes.contains_key(&change.id_number) {
                 info!("Dropping due to WIP");
-                self.changes.remove(&change.id_number);
-                self.changes_by_id.remove(&change.change_id);
+                self.remove(change);
             }
         } else {
             let review_state = Status::review_state(change);
@@ -74,5 +72,10 @@ impl Container {
 
     pub fn get_by_change_id(&self, id: &String) -> Option<Change> {
         self.get(*self.changes_by_id.get(id)?)
+    }
+
+    pub fn remove(&mut self, change: &GerritChange) {
+        self.changes.remove(&change.id_number);
+        self.changes_by_id.remove(&change.change_id);
     }
 }

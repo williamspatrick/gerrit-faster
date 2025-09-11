@@ -111,9 +111,12 @@ pub async fn serve(context: ServiceContext) {
         for change in &changes {
             context.lock().unwrap().changes.set(change);
 
-            let _ = abandon_older_than_two_years(&context, change).await
+            if abandon_older_than_two_years(&context, change).await
                 || abandon_older_than_one_year_and_bad_ci(&context, change)
-                    .await;
+                    .await
+            {
+                context.lock().unwrap().changes.remove(change);
+            }
         }
 
         sleep(Duration::from_secs(60)).await;
