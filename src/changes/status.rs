@@ -3,10 +3,10 @@ use crate::gerrit::data::ChangeInfo as GerritChange;
 #[derive(Clone)]
 pub enum ReviewState {
     Unknown,
-    PendingCI,
+    MissingCI,
     FailingCI,
-    PendingFeedback,
-    PendingCommentResolution,
+    PendingFeedback(String),
+    PendingCommentResolution(u64),
     CommunityReview,
 }
 
@@ -14,76 +14,102 @@ impl std::fmt::Debug for ReviewState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ReviewState::Unknown => write!(f, "Unknown"),
-            ReviewState::PendingCI => write!(f, "Pending CI"),
+            ReviewState::MissingCI => write!(f, "Missing CI"),
             ReviewState::FailingCI => write!(f, "Failing CI"),
-            ReviewState::PendingFeedback => write!(f, "Pending Feedback"),
-            ReviewState::PendingCommentResolution => {
-                write!(f, "Pending Comment Resolution")
+            ReviewState::PendingFeedback(user) => {
+                write!(f, "Pending Feedback (by {})", user)
+            }
+            ReviewState::PendingCommentResolution(count) => {
+                write!(f, "Pending Comment Resolution ({} pending)", count)
             }
             ReviewState::CommunityReview => write!(f, "Community Review"),
         }
     }
 }
 
-fn pending_ci(change: &GerritChange) -> bool {
+fn pending_ci(change: &GerritChange) -> ReviewState {
     for score in change.labels["Verified"].iter() {
         if score.username != "jenkins-openbmc-ci" {
             continue;
         }
-        return score.value == 0;
+        if score.value == 0 {
+            return ReviewState::MissingCI;
+        } else {
+            return ReviewState::Unknown;
+        }
     }
-    true
+    ReviewState::MissingCI
 }
 
-fn failing_ci(change: &GerritChange) -> bool {
+fn failing_ci(change: &GerritChange) -> ReviewState {
     for score in change.labels["Verified"].iter() {
         if score.username != "jenkins-openbmc-ci" {
             continue;
         }
-        return score.value < 0;
+        if score.value < 0 {
+            return ReviewState::FailingCI;
+        } else {
+            return ReviewState::Unknown;
+        }
     }
-    false
+    ReviewState::Unknown
 }
 
-fn pending_feedback(change: &GerritChange) -> bool {
+fn pending_feedback(change: &GerritChange) -> ReviewState {
     for score in change.labels["Code-Review"].iter() {
-        return score.value < 0;
+        if score.value < 0 {
+            return ReviewState::PendingFeedback(score.username.clone());
+        } else {
+            return ReviewState::Unknown;
+        }
     }
-    false
+    ReviewState::Unknown
 }
 
-fn pending_comments(change: &GerritChange) -> bool {
-    change.unresolved_comment_count != 0
+fn pending_comments(change: &GerritChange) -> ReviewState {
+    if change.unresolved_comment_count != 0 {
+        return ReviewState::PendingCommentResolution(
+            change.unresolved_comment_count,
+        );
+    }
+    ReviewState::Unknown
 }
 
-fn no_reviews(change: &GerritChange) -> bool {
+fn no_reviews(change: &GerritChange) -> ReviewState {
     for score in change.labels["Code-Review"].iter() {
         if score.value != 0 {
-            return false;
+            return ReviewState::Unknown;
         }
     }
-    true
+    ReviewState::CommunityReview
 }
 
 pub fn review_state(change: &GerritChange) -> ReviewState {
-    if pending_ci(change) {
-        return ReviewState::PendingCI;
+    let mut status;
+
+    status = pending_ci(change);
+    if !matches!(status, ReviewState::Unknown) {
+        return status;
     }
 
-    if failing_ci(change) {
-        return ReviewState::FailingCI;
+    status = failing_ci(change);
+    if !matches!(status, ReviewState::Unknown) {
+        return status;
     }
 
-    if pending_feedback(change) {
-        return ReviewState::PendingFeedback;
+    status = pending_feedback(change);
+    if !matches!(status, ReviewState::Unknown) {
+        return status;
     }
 
-    if pending_comments(change) {
-        return ReviewState::PendingCommentResolution;
+    status = pending_comments(change);
+    if !matches!(status, ReviewState::Unknown) {
+        return status;
     }
 
-    if no_reviews(change) {
-        return ReviewState::CommunityReview;
+    status = no_reviews(change);
+    if !matches!(status, ReviewState::Unknown) {
+        return status;
     }
 
     ReviewState::Unknown
