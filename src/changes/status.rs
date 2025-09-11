@@ -85,8 +85,6 @@ fn pending_feedback(change: &GerritData::ChangeInfo) -> ReviewState {
         }
         if score.value < 0 {
             return ReviewState::PendingFeedback(score.username.clone());
-        } else {
-            return ReviewState::Unknown;
         }
     }
     ReviewState::Unknown
