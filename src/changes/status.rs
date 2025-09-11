@@ -1,6 +1,6 @@
 use crate::gerrit::data::ChangeInfo as GerritChange;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum ReviewState {
     Unknown,
     PendingCI,
@@ -8,6 +8,21 @@ pub enum ReviewState {
     PendingFeedback,
     PendingCommentResolution,
     CommunityReview,
+}
+
+impl std::fmt::Debug for ReviewState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ReviewState::Unknown => write!(f, "Unknown"),
+            ReviewState::PendingCI => write!(f, "Pending CI"),
+            ReviewState::FailingCI => write!(f, "Failing CI"),
+            ReviewState::PendingFeedback => write!(f, "Pending Feedback"),
+            ReviewState::PendingCommentResolution => {
+                write!(f, "Pending Comment Resolution")
+            }
+            ReviewState::CommunityReview => write!(f, "Community Review"),
+        }
+    }
 }
 
 fn pending_ci(change: &GerritChange) -> bool {
