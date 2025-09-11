@@ -1,5 +1,6 @@
 use crate::changes::status as Status;
 use crate::gerrit::data::ChangeInfo as GerritChange;
+use crate::gerrit::data::ChangeStatus as GerritChangeStatus;
 
 use std::collections::HashMap;
 use tracing::info;
@@ -26,8 +27,8 @@ impl Container {
 
     pub fn set(&mut self, change: &GerritChange) {
         info!("Change: {:?}", change);
-        if change.status != "NEW" {
-            info!("Dropping due to status={}", change.status);
+        if change.status != GerritChangeStatus::New {
+            info!("Dropping due to status={:?}", change.status);
             self.changes.remove(&change.id_number);
             self.changes_by_id.remove(&change.change_id);
         } else {

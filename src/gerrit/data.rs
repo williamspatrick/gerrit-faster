@@ -49,6 +49,14 @@ pub struct SubmitRecord {
     pub status: SubmitRecordStatus,
 }
 
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ChangeStatus {
+    New,
+    Merged,
+    Abandoned,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct ChangeInfoRaw {
     pub id: String,
@@ -62,7 +70,7 @@ pub struct ChangeInfoRaw {
     pub created: String,
     pub updated: String,
 
-    pub status: String,
+    pub status: ChangeStatus,
     #[serde(default)]
     pub work_in_progress: bool,
     #[serde(default)]
@@ -87,7 +95,7 @@ pub struct ChangeInfo {
     pub created: DateTime<Utc>,
     pub updated: DateTime<Utc>,
 
-    pub status: String,
+    pub status: ChangeStatus,
     pub work_in_progress: bool,
     pub unresolved_comment_count: u64,
 
