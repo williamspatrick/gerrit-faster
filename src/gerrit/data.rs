@@ -4,6 +4,11 @@ use std::collections::HashMap;
 use std::ops::Deref;
 
 #[derive(Deserialize, Clone, Debug)]
+pub struct AccountInfo {
+    pub username: String,
+}
+
+#[derive(Deserialize, Clone, Debug)]
 pub struct ApprovalInfo {
     pub username: String,
     #[serde(default)]
@@ -66,6 +71,7 @@ pub struct ChangeInfoRaw {
     pub branch: String,
 
     pub subject: String,
+    pub owner: AccountInfo,
 
     pub created: String,
     pub updated: String,
@@ -91,6 +97,7 @@ pub struct ChangeInfo {
     pub branch: String,
 
     pub subject: String,
+    pub owner: AccountInfo,
 
     pub created: DateTime<Utc>,
     pub updated: DateTime<Utc>,
@@ -112,6 +119,7 @@ impl From<ChangeInfoRaw> for ChangeInfo {
             project: raw.project,
             branch: raw.branch,
             subject: raw.subject,
+            owner: raw.owner,
             created: DateTime::from_naive_utc_and_offset(
                 NaiveDateTime::parse_from_str(
                     &raw.created,

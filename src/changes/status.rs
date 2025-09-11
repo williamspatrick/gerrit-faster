@@ -57,6 +57,9 @@ fn failing_ci(change: &GerritChange) -> ReviewState {
 
 fn pending_feedback(change: &GerritChange) -> ReviewState {
     for score in change.labels["Code-Review"].iter() {
+        if score.username == change.owner.username {
+            continue;
+        }
         if score.value < 0 {
             return ReviewState::PendingFeedback(score.username.clone());
         } else {
@@ -77,6 +80,9 @@ fn pending_comments(change: &GerritChange) -> ReviewState {
 
 fn no_reviews(change: &GerritChange) -> ReviewState {
     for score in change.labels["Code-Review"].iter() {
+        if score.username == change.owner.username {
+            continue;
+        }
         if score.value != 0 {
             return ReviewState::Unknown;
         }
