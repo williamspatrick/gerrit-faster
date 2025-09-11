@@ -1,6 +1,6 @@
 use crate::gerrit::data as GerritData;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum ReviewState {
     Unknown,
     MissingCI,

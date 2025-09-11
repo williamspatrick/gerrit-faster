@@ -1,7 +1,7 @@
 use crate::changes::status as Status;
 use crate::gerrit::data::ChangeInfo as GerritChange;
 use crate::gerrit::data::ChangeStatus as GerritChangeStatus;
-
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use tracing::info;
 
@@ -9,6 +9,7 @@ use tracing::info;
 pub struct Change {
     pub change: GerritChange,
     pub review_state: Status::ReviewState,
+    pub review_state_updated: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone)]
@@ -42,11 +43,24 @@ impl Container {
         } else {
             let review_state = Status::review_state(change);
             info!("Change Status = {:?}", review_state);
+
+            let review_state_updated =
+                if let Some(i) = self.changes.get(&change.id_number) {
+                    if i.review_state == review_state {
+                        i.review_state_updated
+                    } else {
+                        change.updated
+                    }
+                } else {
+                    change.updated
+                };
+
             self.changes.insert(
                 change.id_number,
                 Change {
                     change: change.clone(),
                     review_state: review_state,
+                    review_state_updated: review_state_updated,
                 },
             );
             self.changes_by_id
