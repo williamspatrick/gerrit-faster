@@ -5,6 +5,7 @@ pub enum ReviewState {
     Unknown,
     MissingCI,
     FailingCI,
+    MergeConflict,
     PendingFeedback(String),
     PendingCommentResolution(u64),
     CommunityReview,
@@ -18,14 +19,25 @@ impl std::fmt::Debug for ReviewState {
             ReviewState::Unknown => write!(f, "Unknown"),
             ReviewState::MissingCI => write!(f, "Missing CI"),
             ReviewState::FailingCI => write!(f, "Failing CI"),
+            ReviewState::MergeConflict => {
+                write!(f, "Merge Conflicts to be Resolved")
+            }
             ReviewState::PendingFeedback(user) => {
-                write!(f, "Pending Feedback (by {})", user)
+                write!(f, "Pending Feedback to be Addressed (by {})", user)
             }
             ReviewState::PendingCommentResolution(count) => {
-                write!(f, "Pending Comment Resolution ({} pending)", count)
+                write!(
+                    f,
+                    "Pending Comment(s) to be Addressed ({} pending)",
+                    count
+                )
             }
-            ReviewState::CommunityReview => write!(f, "Community Review"),
-            ReviewState::MaintainerReview => write!(f, "Maintainer Review"),
+            ReviewState::CommunityReview => {
+                write!(f, "Awaiting Community Review")
+            }
+            ReviewState::MaintainerReview => {
+                write!(f, "Awaiting Maintainer Review")
+            }
             ReviewState::ReadyToSubmit => write!(f, "Ready to Submit"),
         }
     }
@@ -55,6 +67,13 @@ fn failing_ci(change: &GerritData::ChangeInfo) -> ReviewState {
         } else {
             return ReviewState::Unknown;
         }
+    }
+    ReviewState::Unknown
+}
+
+fn merge_conflicts(change: &GerritData::ChangeInfo) -> ReviewState {
+    if !change.mergeable {
+        return ReviewState::MergeConflict;
     }
     ReviewState::Unknown
 }
@@ -121,6 +140,11 @@ pub fn review_state(change: &GerritData::ChangeInfo) -> ReviewState {
     }
 
     status = failing_ci(change);
+    if !matches!(status, ReviewState::Unknown) {
+        return status;
+    }
+
+    status = merge_conflicts(change);
     if !matches!(status, ReviewState::Unknown) {
         return status;
     }
