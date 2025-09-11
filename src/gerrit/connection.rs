@@ -23,6 +23,9 @@ pub trait GerritConnection {
     async fn all_open_changes(
         &self,
     ) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error>;
+    async fn recent_changes(
+        &self,
+    ) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error>;
     async fn abandon_change(
         &self,
         change_id: &str,
@@ -82,6 +85,21 @@ impl GerritConnection for Connection {
     ) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error> {
         let result = self.execute_request(reqwest::Client::new()
             .get("https://gerrit.openbmc.org/a/changes/?q=status:open+-is:wip&o=LABELS&o=DETAILED_ACCOUNTS&no-limit")).await?;
+
+        Ok(
+            serde_json::from_str::<Vec<gerrit_data::ChangeInfoRaw>>(&result)
+                .expect("JSON failed")
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+        )
+    }
+
+    async fn recent_changes(
+        &self,
+    ) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error> {
+        let result = self.execute_request(reqwest::Client::new()
+            .get("https://gerrit.openbmc.org/a/changes/?q=status:open+-is:wip+-age:1h&o=LABELS&o=DETAILED_ACCOUNTS&no-limit")).await?;
 
         Ok(
             serde_json::from_str::<Vec<gerrit_data::ChangeInfoRaw>>(&result)

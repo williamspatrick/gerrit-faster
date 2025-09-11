@@ -2,6 +2,7 @@ use crate::context::ServiceContext;
 use crate::gerrit::connection::GerritConnection;
 use crate::gerrit::data::{ApprovalInfo, ChangeInfo};
 use chrono::Utc;
+use tokio::time::{sleep, Duration};
 use tracing::info;
 
 async fn abandon_older_than_two_years(
@@ -97,19 +98,24 @@ async fn abandon_older_than_one_year_and_bad_ci(
 }
 
 pub async fn serve(context: ServiceContext) {
-    let changes = context.get_gerrit().all_open_changes().await.unwrap();
-    let mut abandoned = 0;
+    let mut first_time = true;
 
-    for change in &changes {
-        context.lock().unwrap().changes.set(change);
+    loop {
+        let changes = if first_time {
+            first_time = false;
+            context.get_gerrit().all_open_changes().await.unwrap()
+        } else {
+            context.get_gerrit().recent_changes().await.unwrap()
+        };
 
-        if abandon_older_than_two_years(&context, change).await
-            || abandon_older_than_one_year_and_bad_ci(&context, change).await
-        {
-            abandoned += 1;
+        for change in &changes {
+            context.lock().unwrap().changes.set(change);
+
+            let _ = abandon_older_than_two_years(&context, change).await
+                || abandon_older_than_one_year_and_bad_ci(&context, change)
+                    .await;
         }
-    }
 
-    info!("Total Changes: {:?}", changes.len());
-    info!("Total abandoned: {:?}", abandoned);
+        sleep(Duration::from_secs(60)).await;
+    }
 }
