@@ -28,9 +28,17 @@ impl Container {
     pub fn set(&mut self, change: &GerritChange) {
         info!("Change: {:?}", change);
         if change.status != GerritChangeStatus::New {
-            info!("Dropping due to status={:?}", change.status);
-            self.changes.remove(&change.id_number);
-            self.changes_by_id.remove(&change.change_id);
+            if self.changes.contains_key(&change.id_number) {
+                info!("Dropping due to status={:?}", change.status);
+                self.changes.remove(&change.id_number);
+                self.changes_by_id.remove(&change.change_id);
+            }
+        } else if change.work_in_progress {
+            if self.changes.contains_key(&change.id_number) {
+                info!("Dropping due to WIP");
+                self.changes.remove(&change.id_number);
+                self.changes_by_id.remove(&change.change_id);
+            }
         } else {
             let review_state = Status::review_state(change);
             info!("Change Status = {:?}", review_state);

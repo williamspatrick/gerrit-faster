@@ -79,6 +79,7 @@ pub struct ChangeInfoRaw {
     pub status: ChangeStatus,
     #[serde(default)]
     pub work_in_progress: bool,
+    #[serde(default)]
     pub mergeable: bool,
     #[serde(default)]
     pub unresolved_comment_count: u64,

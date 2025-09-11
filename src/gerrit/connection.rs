@@ -99,7 +99,7 @@ impl GerritConnection for Connection {
         &self,
     ) -> Result<Vec<gerrit_data::ChangeInfo>, reqwest::Error> {
         let result = self.execute_request(reqwest::Client::new()
-            .get("https://gerrit.openbmc.org/a/changes/?q=status:open+-is:wip+-age:1h&o=LABELS&o=DETAILED_ACCOUNTS&no-limit")).await?;
+            .get("https://gerrit.openbmc.org/a/changes/?q=-age:1h&o=LABELS&o=DETAILED_ACCOUNTS&no-limit")).await?;
 
         Ok(
             serde_json::from_str::<Vec<gerrit_data::ChangeInfoRaw>>(&result)
