@@ -1,31 +1,77 @@
 use crate::changes::status::NextStepOwner;
 use crate::context::ServiceContext;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
+use enum_map::{Enum, EnumMap};
+use std::fmt;
 
-struct ChangesAge {
-    under_24_hrs: u64,
-    under_72_hrs: u64,
-    under_2_weeks: u64,
-    under_8_weeks: u64,
-    over_8_weeks: u64,
+#[derive(Debug, Clone, Copy, PartialEq, Enum)]
+enum TimeInterval {
+    Under24Hours,
+    Under72Hours,
+    Under2Weeks,
+    Under8Weeks,
+    Over8Weeks,
 }
 
-impl ChangesAge {
-    fn new() -> ChangesAge {
-        ChangesAge {
-            under_24_hrs: 0,
-            under_72_hrs: 0,
-            under_2_weeks: 0,
-            under_8_weeks: 0,
-            over_8_weeks: 0,
+impl TimeInterval {
+    pub fn from_timestamp(timestamp: DateTime<Utc>) -> Self {
+        let now = Utc::now();
+        let duration = now.signed_duration_since(timestamp);
+
+        if duration.num_hours() < 24 {
+            TimeInterval::Under24Hours
+        } else if duration.num_hours() < 72 {
+            TimeInterval::Under72Hours
+        } else if duration.num_weeks() < 2 {
+            TimeInterval::Under2Weeks
+        } else if duration.num_weeks() < 8 {
+            TimeInterval::Under8Weeks
+        } else {
+            TimeInterval::Over8Weeks
         }
     }
 }
 
+impl fmt::Display for TimeInterval {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            TimeInterval::Under24Hours => write!(f, "<24 hours"),
+            TimeInterval::Under72Hours => write!(f, "<72 hours"),
+            TimeInterval::Under2Weeks => write!(f, "<2 weeks"),
+            TimeInterval::Under8Weeks => write!(f, "<8 weeks"),
+            TimeInterval::Over8Weeks => write!(f, ">8 weeks"),
+        }
+    }
+}
+
+/// A nested map structure that tracks counts by time interval and next step owner
+#[derive(Debug, Default)]
+struct ChangesByOwnerAndTime(
+    EnumMap<TimeInterval, EnumMap<NextStepOwner, u64>>,
+);
+
+impl ChangesByOwnerAndTime {
+    /// Increment the count for a specific time interval and next step owner combination
+    pub fn increment(
+        &mut self,
+        time_interval: TimeInterval,
+        owner: NextStepOwner,
+    ) {
+        self.0[time_interval][owner] += 1;
+    }
+
+    /// Get the count for a specific time interval and next step owner combination
+    pub fn get_count(
+        &self,
+        time_interval: TimeInterval,
+        owner: NextStepOwner,
+    ) -> u64 {
+        self.0[time_interval][owner]
+    }
+}
+
 pub fn report(context: &ServiceContext, project: Option<String>) -> String {
-    let mut author = ChangesAge::new();
-    let mut community = ChangesAge::new();
-    let mut maintainers = ChangesAge::new();
+    let mut changes = ChangesByOwnerAndTime::default();
 
     for (_, change) in &context.lock().unwrap().changes.changes {
         if let Some(ref project_name) = project
@@ -34,65 +80,40 @@ pub fn report(context: &ServiceContext, project: Option<String>) -> String {
             continue;
         }
 
-        let change_type: &mut ChangesAge =
-            match NextStepOwner::from(change.review_state.clone()) {
-                NextStepOwner::Author => &mut author,
-                NextStepOwner::Community => &mut community,
-                NextStepOwner::Maintainer => &mut maintainers,
-            };
-        let now = Utc::now();
+        let time_unit =
+            TimeInterval::from_timestamp(change.review_state_updated);
+        let owner = NextStepOwner::from(change.review_state.clone());
 
-        if change.review_state_updated > now - chrono::Duration::hours(24) {
-            change_type.under_24_hrs += 1;
-        } else if change.review_state_updated
-            > now - chrono::Duration::hours(72)
-        {
-            change_type.under_72_hrs += 1;
-        } else if change.review_state_updated > now - chrono::Duration::weeks(2)
-        {
-            change_type.under_2_weeks += 1;
-        } else if change.review_state_updated > now - chrono::Duration::weeks(8)
-        {
-            change_type.under_8_weeks += 1;
-        } else {
-            change_type.over_8_weeks += 1;
-        }
+        changes.increment(time_unit, owner);
     }
+
     let mut table = comfy_table::Table::new();
     table
         .load_preset(comfy_table::presets::UTF8_FULL)
         .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
-        .set_header(vec!["", "Community", "Maintainers", "Author"])
-        .add_row(vec![
-            "<24 hrs".to_string(),
-            community.under_24_hrs.to_string(),
-            maintainers.under_24_hrs.to_string(),
-            author.under_24_hrs.to_string(),
-        ])
-        .add_row(vec![
-            "<72 hrs".to_string(),
-            community.under_72_hrs.to_string(),
-            maintainers.under_72_hrs.to_string(),
-            author.under_72_hrs.to_string(),
-        ])
-        .add_row(vec![
-            "<2 weeks".to_string(),
-            community.under_2_weeks.to_string(),
-            maintainers.under_2_weeks.to_string(),
-            author.under_2_weeks.to_string(),
-        ])
-        .add_row(vec![
-            "<8 weeks".to_string(),
-            community.under_8_weeks.to_string(),
-            maintainers.under_8_weeks.to_string(),
-            author.under_8_weeks.to_string(),
-        ])
-        .add_row(vec![
-            ">8 weeks".to_string(),
-            community.over_8_weeks.to_string(),
-            maintainers.over_8_weeks.to_string(),
-            author.over_8_weeks.to_string(),
+        .set_header(vec!["", "Community", "Maintainers", "Author"]);
+
+    // Iterate over all time intervals and add rows dynamically
+    for time_interval in [
+        TimeInterval::Under24Hours,
+        TimeInterval::Under72Hours,
+        TimeInterval::Under2Weeks,
+        TimeInterval::Under8Weeks,
+        TimeInterval::Over8Weeks,
+    ] {
+        table.add_row(vec![
+            time_interval.to_string(),
+            changes
+                .get_count(time_interval, NextStepOwner::Community)
+                .to_string(),
+            changes
+                .get_count(time_interval, NextStepOwner::Maintainer)
+                .to_string(),
+            changes
+                .get_count(time_interval, NextStepOwner::Author)
+                .to_string(),
         ]);
+    }
 
     table.to_string()
 }

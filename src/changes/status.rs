@@ -1,4 +1,5 @@
 use crate::gerrit::data as GerritData;
+use enum_map::Enum;
 
 #[derive(Clone, PartialEq)]
 pub enum ReviewState {
@@ -43,7 +44,7 @@ impl std::fmt::Debug for ReviewState {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Enum, Debug)]
 pub enum NextStepOwner {
     Author,
     Community,
