@@ -118,10 +118,10 @@ fn missing_maintainer_review(change: &GerritData::ChangeInfo) -> ReviewState {
         }
         match submit_record.status {
             GerritData::SubmitRecordStatus::NotReady => {
-                return ReviewState::MaintainerReview
+                return ReviewState::MaintainerReview;
             }
             GerritData::SubmitRecordStatus::Ok => {
-                return ReviewState::ReadyToSubmit
+                return ReviewState::ReadyToSubmit;
             }
             _ => {}
         }

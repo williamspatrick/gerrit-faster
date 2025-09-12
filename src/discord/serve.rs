@@ -1,19 +1,28 @@
 use crate::changes as Changes;
+use crate::changes::report as ChangeReport;
 use crate::context::ServiceContext;
-use crate::gerrit::connection::GerritConnection;
 use poise::serenity_prelude as serenity;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, ServiceContext, Error>;
 
-// Get the status of the service.
-#[poise::command(slash_command, prefix_command, rename = "obmc-service-status")]
-async fn service_status(ctx: Context<'_>) -> Result<(), Error> {
-    let service = ctx.data();
+// Give a report of outstanding changes.
+#[poise::command(slash_command, prefix_command, rename = "obmc-report")]
+async fn report(
+    ctx: Context<'_>,
+    #[description = "Project"] project: Option<String>,
+) -> Result<(), Error> {
+    let service = ctx.data().clone();
 
-    let response =
-        format!("Running as '{}'", service.get_gerrit().get_username());
+    let report = ChangeReport::report(&service, project.clone());
+
+    let response = if let Some(ref project_name) = project {
+        format!("Project {}:\n```\n{}\n```", project_name, report)
+    } else {
+        format!("Overall Status:\n```\n{}\n```", report)
+    };
     ctx.say(response).await?;
+
     Ok(())
 }
 
@@ -53,7 +62,7 @@ pub async fn serve(context: ServiceContext) {
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![service_status(), review_status()],
+            commands: vec![report(), review_status()],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {

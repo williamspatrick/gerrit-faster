@@ -1,6 +1,6 @@
 use crate::context::ServiceContext;
 use crate::gerrit::connection::GerritConnection;
-use axum::{response::Html, routing::get, Extension, Router};
+use axum::{Extension, Router, response::Html, routing::get};
 use tower::ServiceBuilder;
 
 pub async fn serve(context: ServiceContext) {

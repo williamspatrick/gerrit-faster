@@ -2,7 +2,7 @@ use crate::context::ServiceContext;
 use crate::gerrit::connection::GerritConnection;
 use crate::gerrit::data::{ApprovalInfo, ChangeInfo};
 use chrono::Utc;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 use tracing::info;
 
 async fn abandon_older_than_two_years(
