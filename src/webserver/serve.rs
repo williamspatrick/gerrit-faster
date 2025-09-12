@@ -17,6 +17,7 @@ pub async fn serve(context: ServiceContext) {
         .route("/review-status/{id}", get(review_status))
         .route("/report", get(report_overall))
         .route("/report/{*project}", get(report_project))
+        .route("/user/{id}", get(report_user))
         .layer(ServiceBuilder::new().layer(Extension(context)));
 
     // run it
@@ -37,9 +38,17 @@ async fn root(Extension(context): Extension<ServiceContext>) -> Html<String> {
 fn list_of_changes(
     changes: &ChangeReport::ChangesByOwnerAndTime,
     context: &ServiceContext,
+    include_author: bool,
 ) -> String {
     let mut result = String::new();
-    for owner in [NextStepOwner::Community, NextStepOwner::Maintainer] {
+    for owner in [
+        NextStepOwner::Author,
+        NextStepOwner::Community,
+        NextStepOwner::Maintainer,
+    ] {
+        if owner == NextStepOwner::Author && !include_author {
+            continue;
+        }
         result += &format!("<h2>{:?}</h2>\n", owner);
         for interval in [
             TimeInterval::Under24Hours,
@@ -59,8 +68,13 @@ fn list_of_changes(
                     context.lock().unwrap().changes.get(change);
                 if let Some(change_data) = change_data_opt {
                     result += &format!(
-                        "<li><b>{}</b><ul><li><a href=\"https://gerrit.openbmc.org/c/{}/+/{}\">{}</a></li></ul></li>\n",
+                        "<li><b>{}</b>{}<ul><li><a href=\"https://gerrit.openbmc.org/c/{}/+/{}\">{}</a></li></ul></li>\n",
                         change_data.change.project,
+                        if owner == NextStepOwner::Author {
+                            format!(" ({:?})", change_data.review_state)
+                        } else {
+                            String::new()
+                        },
                         change_data.change.project,
                         change_data.change.id_number,
                         change_data.change.subject
@@ -77,9 +91,9 @@ fn list_of_changes(
 async fn report_overall(
     Extension(context): Extension<ServiceContext>,
 ) -> Html<String> {
-    let changes = ChangeReport::changes_by_owner_time(&context, None);
+    let changes = ChangeReport::changes_by_owner_time(&context, None, None);
     let report_text = ChangeReport::report_by_owner_time(&changes);
-    let changes_text = list_of_changes(&changes, &context);
+    let changes_text = list_of_changes(&changes, &context, false);
 
     Html(format!(
         "<html><head><title>Overall Status</title></head><body><h1>Overall Status</h1><pre style=\"font-family: monospace;\">{}</pre>{}</body></html>",
@@ -94,14 +108,38 @@ async fn report_project(
     // Remove the leading slash that comes with the wildcard pattern
     let project = project.strip_prefix('/').unwrap_or(&project).to_string();
 
-    let changes =
-        ChangeReport::changes_by_owner_time(&context, Some(project.clone()));
+    let changes = ChangeReport::changes_by_owner_time(
+        &context,
+        Some(project.clone()),
+        None,
+    );
     let report_text = ChangeReport::report_by_owner_time(&changes);
-    let changes_text = list_of_changes(&changes, &context);
+    let changes_text = list_of_changes(&changes, &context, false);
 
     Html(format!(
         "<html><head><title>Project {}</title></head><body><h1>Project {}</h1><pre style=\"font-family: monospace;\">{}</pre>{}</body></html>",
         project, project, report_text, changes_text,
+    ))
+}
+
+async fn report_user(
+    Path(username): Path<String>,
+    Extension(context): Extension<ServiceContext>,
+) -> Html<String> {
+    // Remove the leading slash that comes with the wildcard pattern
+    let username = username.strip_prefix('/').unwrap_or(&username).to_string();
+
+    let changes = ChangeReport::changes_by_owner_time(
+        &context,
+        None,
+        Some(username.clone()),
+    );
+    let report_text = ChangeReport::report_by_owner_time(&changes);
+    let changes_text = list_of_changes(&changes, &context, true);
+
+    Html(format!(
+        "<html><head><title>{}</title></head><body><h1>{}</h1><pre style=\"font-family: monospace;\">{}</pre>{}</body></html>",
+        username, username, report_text, changes_text,
     ))
 }
 

@@ -86,12 +86,18 @@ impl ChangesByOwnerAndTime {
 pub fn changes_by_owner_time(
     context: &ServiceContext,
     project: Option<String>,
+    owner: Option<String>,
 ) -> ChangesByOwnerAndTime {
     let mut changes = ChangesByOwnerAndTime::default();
 
     for (_, change) in &context.lock().unwrap().changes.changes {
         if let Some(ref project_name) = project
             && !change.change.project.eq(project_name)
+        {
+            continue;
+        }
+        if let Some(ref owner_name) = owner
+            && !change.change.owner.username.eq(owner_name)
         {
             continue;
         }
@@ -105,8 +111,12 @@ pub fn changes_by_owner_time(
 
     changes
 }
-pub fn report(context: &ServiceContext, project: Option<String>) -> String {
-    report_by_owner_time(&changes_by_owner_time(context, project))
+pub fn report(
+    context: &ServiceContext,
+    project: Option<String>,
+    owner: Option<String>,
+) -> String {
+    report_by_owner_time(&changes_by_owner_time(context, project, owner))
 }
 
 pub fn report_by_owner_time(changes: &ChangesByOwnerAndTime) -> String {

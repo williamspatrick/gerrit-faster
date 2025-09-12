@@ -14,7 +14,7 @@ async fn report(
 ) -> Result<(), Error> {
     let service = ctx.data().clone();
 
-    let report = ChangeReport::report(&service, project.clone());
+    let report = ChangeReport::report(&service, project.clone(), None);
 
     let response = if let Some(ref project_name) = project {
         format!("Project {}:\n```\n{}\n```", project_name, report)
