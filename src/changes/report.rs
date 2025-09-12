@@ -1,4 +1,4 @@
-use crate::changes::status::ReviewState;
+use crate::changes::status::NextStepOwner;
 use crate::context::ServiceContext;
 use chrono::Utc;
 
@@ -34,11 +34,12 @@ pub fn report(context: &ServiceContext, project: Option<String>) -> String {
             continue;
         }
 
-        let change_type: &mut ChangesAge = match change.review_state {
-            ReviewState::CommunityReview => &mut community,
-            ReviewState::MaintainerReview => &mut maintainers,
-            _ => &mut author,
-        };
+        let change_type: &mut ChangesAge =
+            match NextStepOwner::from(change.review_state.clone()) {
+                NextStepOwner::Author => &mut author,
+                NextStepOwner::Community => &mut community,
+                NextStepOwner::Maintainer => &mut maintainers,
+            };
         let now = Utc::now();
 
         if change.review_state_updated > now - chrono::Duration::hours(24) {

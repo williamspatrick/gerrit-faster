@@ -43,6 +43,23 @@ impl std::fmt::Debug for ReviewState {
     }
 }
 
+#[derive(Clone, PartialEq)]
+pub enum NextStepOwner {
+    Author,
+    Community,
+    Maintainer,
+}
+
+impl From<ReviewState> for NextStepOwner {
+    fn from(state: ReviewState) -> NextStepOwner {
+        match state {
+            ReviewState::CommunityReview => NextStepOwner::Community,
+            ReviewState::MaintainerReview => NextStepOwner::Maintainer,
+            _ => NextStepOwner::Author,
+        }
+    }
+}
+
 fn pending_ci(change: &GerritData::ChangeInfo) -> ReviewState {
     for score in change.labels["Verified"].iter() {
         if score.username != "jenkins-openbmc-ci" {
