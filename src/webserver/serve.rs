@@ -1,7 +1,6 @@
 use crate::changes::report::{self as ChangeReport, TimeInterval};
 use crate::changes::{self as Changes, status::NextStepOwner};
 use crate::context::ServiceContext;
-use crate::gerrit::connection::GerritConnection;
 use axum::{
     Extension, Router,
     extract::Path,
@@ -28,10 +27,69 @@ pub async fn serve(context: ServiceContext) {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn root(Extension(context): Extension<ServiceContext>) -> Html<String> {
-    Html(std::format!(
-        "Connecting to Gerrit as '{}'!",
-        context.get_gerrit().get_username()
+async fn root(Extension(_context): Extension<ServiceContext>) -> Html<String> {
+    Html(format!(
+        r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OpenBMC Bot</title>
+</head>
+<body>
+    <div class="container">
+        <h1>OpenBMC Bot</h1>
+
+        <div class="section">
+            <h2>Reports</h2>
+            <div class="form-group">
+                <label for="project">Query:</label>
+                <input type="text" id="query" placeholder="Enter project or username">
+                <button onclick="goToProject()">Project</button>
+                <button onclick="goToUser()">User</button>
+                <button onclick="window.location.href='/report'">All Pending</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Change Status</h2>
+            <div class="form-group">
+                <label for="changeId">Change ID:</label>
+                <input type="text" id="change_id" placeholder="Enter change ID">
+                <button onclick="goToChangeStatus()">Change</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function goToProject() {{
+            const project = document.getElementById('query').value.trim();
+            if (project) {{
+                window.location.href = '/report/' + project;
+            }} else {{
+                alert('Please enter a project name');
+            }}
+        }}
+
+        function goToUser() {{
+            const user = document.getElementById('query').value.trim();
+            if (user) {{
+                window.location.href = '/user/' + encodeURIComponent(user);
+            }} else {{
+                alert('Please enter a username');
+            }}
+        }}
+
+        function goToChangeStatus() {{
+            const changeId = document.getElementById('change_id').value.trim();
+            if (changeId) {{
+                window.location.href = '/review-status/' + encodeURIComponent(changeId);
+            }} else {{
+                alert('Please enter a change ID');
+            }}
+        }}
+    </script>
+</body>
+</html>"#
     ))
 }
 
