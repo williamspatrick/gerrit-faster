@@ -5,7 +5,7 @@ use enum_map::{Enum, EnumMap};
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Enum)]
-enum TimeInterval {
+pub enum TimeInterval {
     Under24Hours,
     Under72Hours,
     Under2Weeks,
@@ -46,8 +46,8 @@ impl fmt::Display for TimeInterval {
 
 /// A nested map structure that tracks counts by time interval and next step owner
 #[derive(Debug, Default)]
-struct ChangesByOwnerAndTime(
-    EnumMap<TimeInterval, EnumMap<NextStepOwner, u64>>,
+pub struct ChangesByOwnerAndTime(
+    EnumMap<TimeInterval, EnumMap<NextStepOwner, (u64, Vec<u64>)>>,
 );
 
 impl ChangesByOwnerAndTime {
@@ -56,8 +56,11 @@ impl ChangesByOwnerAndTime {
         &mut self,
         time_interval: TimeInterval,
         owner: NextStepOwner,
+        id_number: u64,
     ) {
-        self.0[time_interval][owner] += 1;
+        let i = &mut self.0[time_interval][owner];
+        i.0 += 1;
+        i.1.push(id_number);
     }
 
     /// Get the count for a specific time interval and next step owner combination
@@ -66,11 +69,24 @@ impl ChangesByOwnerAndTime {
         time_interval: TimeInterval,
         owner: NextStepOwner,
     ) -> u64 {
-        self.0[time_interval][owner]
+        self.0[time_interval][owner].0
+    }
+
+    pub fn get_changes(
+        &self,
+        time_interval: TimeInterval,
+        owner: NextStepOwner,
+    ) -> Vec<u64> {
+        let mut result = self.0[time_interval][owner].1.clone();
+        result.sort();
+        result
     }
 }
 
-pub fn report(context: &ServiceContext, project: Option<String>) -> String {
+pub fn changes_by_owner_time(
+    context: &ServiceContext,
+    project: Option<String>,
+) -> ChangesByOwnerAndTime {
     let mut changes = ChangesByOwnerAndTime::default();
 
     for (_, change) in &context.lock().unwrap().changes.changes {
@@ -84,9 +100,16 @@ pub fn report(context: &ServiceContext, project: Option<String>) -> String {
             TimeInterval::from_timestamp(change.review_state_updated);
         let owner = NextStepOwner::from(change.review_state.clone());
 
-        changes.increment(time_unit, owner);
+        changes.increment(time_unit, owner, change.change.id_number);
     }
 
+    changes
+}
+pub fn report(context: &ServiceContext, project: Option<String>) -> String {
+    report_by_owner_time(&changes_by_owner_time(context, project))
+}
+
+pub fn report_by_owner_time(changes: &ChangesByOwnerAndTime) -> String {
     let mut table = comfy_table::Table::new();
     table
         .load_preset(comfy_table::presets::UTF8_FULL)

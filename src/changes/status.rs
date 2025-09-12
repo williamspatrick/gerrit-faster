@@ -44,7 +44,7 @@ impl std::fmt::Debug for ReviewState {
     }
 }
 
-#[derive(Clone, PartialEq, Enum, Debug)]
+#[derive(Clone, Copy, PartialEq, Enum, Debug)]
 pub enum NextStepOwner {
     Author,
     Community,

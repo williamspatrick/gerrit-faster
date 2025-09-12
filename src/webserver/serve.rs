@@ -1,5 +1,5 @@
-use crate::changes as Changes;
-use crate::changes::report as ChangeReport;
+use crate::changes::report::{self as ChangeReport, TimeInterval};
+use crate::changes::{self as Changes, status::NextStepOwner};
 use crate::context::ServiceContext;
 use crate::gerrit::connection::GerritConnection;
 use axum::{
@@ -34,14 +34,56 @@ async fn root(Extension(context): Extension<ServiceContext>) -> Html<String> {
     ))
 }
 
+fn list_of_changes(
+    changes: &ChangeReport::ChangesByOwnerAndTime,
+    context: &ServiceContext,
+) -> String {
+    let mut result = String::new();
+    for owner in [NextStepOwner::Community, NextStepOwner::Maintainer] {
+        result += &format!("<h2>{:?}</h2>\n", owner);
+        for interval in [
+            TimeInterval::Under24Hours,
+            TimeInterval::Under72Hours,
+            TimeInterval::Under2Weeks,
+            TimeInterval::Under8Weeks,
+            TimeInterval::Over8Weeks,
+        ] {
+            let local_changes = changes.get_changes(interval, owner);
+            if local_changes.is_empty() {
+                continue;
+            }
+
+            result += &format!("<h3>{}</h3>\n<ul>\n", interval.to_string());
+            for change in local_changes {
+                let change_data_opt =
+                    context.lock().unwrap().changes.get(change);
+                if let Some(change_data) = change_data_opt {
+                    result += &format!(
+                        "<li><b>{}</b><ul><li><a href=\"https://gerrit.openbmc.org/c/{}/+/{}\">{}</a></li></ul></li>\n",
+                        change_data.change.project,
+                        change_data.change.project,
+                        change_data.change.id_number,
+                        change_data.change.subject
+                    );
+                }
+            }
+            result += "</ul>\n";
+        }
+    }
+
+    result
+}
+
 async fn report_overall(
     Extension(context): Extension<ServiceContext>,
 ) -> Html<String> {
-    let report_text = ChangeReport::report(&context, None);
+    let changes = ChangeReport::changes_by_owner_time(&context, None);
+    let report_text = ChangeReport::report_by_owner_time(&changes);
+    let changes_text = list_of_changes(&changes, &context);
 
     Html(format!(
-        "<html><head><title>Overall Status</title></head><body><h1>Overall Status</h1><pre style=\"font-family: monospace;\">{}</pre></body></html>",
-        report_text
+        "<html><head><title>Overall Status</title></head><body><h1>Overall Status</h1><pre style=\"font-family: monospace;\">{}</pre>{}</body></html>",
+        report_text, changes_text,
     ))
 }
 
@@ -52,11 +94,14 @@ async fn report_project(
     // Remove the leading slash that comes with the wildcard pattern
     let project = project.strip_prefix('/').unwrap_or(&project).to_string();
 
-    let report_text = ChangeReport::report(&context, Some(project.clone()));
+    let changes =
+        ChangeReport::changes_by_owner_time(&context, Some(project.clone()));
+    let report_text = ChangeReport::report_by_owner_time(&changes);
+    let changes_text = list_of_changes(&changes, &context);
 
     Html(format!(
-        "<html><head><title>Project {}</title></head><body><h1>Project {}</h1><pre style=\"font-family: monospace;\">{}</pre></body></html>",
-        project, project, report_text
+        "<html><head><title>Project {}</title></head><body><h1>Project {}</h1><pre style=\"font-family: monospace;\">{}</pre>{}</body></html>",
+        project, project, report_text, changes_text,
     ))
 }
 
