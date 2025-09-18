@@ -12,11 +12,11 @@ use tower::ServiceBuilder;
 pub async fn serve(context: ServiceContext) {
     // build our application with a route
     let app = Router::new()
-        .route("/", get(root))
-        .route("/review-status/{id}", get(review_status))
-        .route("/report", get(report_overall))
-        .route("/report/{*project}", get(report_project))
-        .route("/user/{id}", get(report_user))
+        .route("/bot", get(root))
+        .route("/bot/review-status/{id}", get(review_status))
+        .route("/bot/report", get(report_overall))
+        .route("/bot/report/{*project}", get(report_project))
+        .route("/bot/user/{id}", get(report_user))
         .layer(ServiceBuilder::new().layer(Extension(context)));
 
     // run it
@@ -46,7 +46,7 @@ async fn root(Extension(_context): Extension<ServiceContext>) -> Html<String> {
                 <input type="text" id="query" placeholder="Enter project or username">
                 <button onclick="goToProject()">Project</button>
                 <button onclick="goToUser()">User</button>
-                <button onclick="window.location.href='/report'">All Pending</button>
+                <button onclick="window.location.href='/bot/report'">All Pending</button>
             </div>
         </div>
 
@@ -64,7 +64,7 @@ async fn root(Extension(_context): Extension<ServiceContext>) -> Html<String> {
         function goToProject() {{
             const project = document.getElementById('query').value.trim();
             if (project) {{
-                window.location.href = '/report/' + project;
+                window.location.href = '/bot/report/' + project;
             }} else {{
                 alert('Please enter a project name');
             }}
@@ -73,7 +73,7 @@ async fn root(Extension(_context): Extension<ServiceContext>) -> Html<String> {
         function goToUser() {{
             const user = document.getElementById('query').value.trim();
             if (user) {{
-                window.location.href = '/user/' + encodeURIComponent(user);
+                window.location.href = '/bot/user/' + encodeURIComponent(user);
             }} else {{
                 alert('Please enter a username');
             }}
@@ -82,14 +82,14 @@ async fn root(Extension(_context): Extension<ServiceContext>) -> Html<String> {
         function goToChangeStatus() {{
             const changeId = document.getElementById('change_id').value.trim();
             if (changeId) {{
-                window.location.href = '/review-status/' + encodeURIComponent(changeId);
+                window.location.href = '/bot/review-status/' + encodeURIComponent(changeId);
             }} else {{
                 alert('Please enter a change ID');
             }}
         }}
     </script>
 </body>
-</html>"#
+</html>"#,
     ))
 }
 
