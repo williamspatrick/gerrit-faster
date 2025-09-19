@@ -119,7 +119,28 @@ button:active {
 /* Card layout for changes */
 .card-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+/* Interval sections */
+.interval-section {
+  margin-bottom: 40px;
+  width: 100%;
+  display: block; /* Ensure interval sections stack vertically */
+}
+
+.interval-section .interval-header {
+  border-bottom: 2px solid var(--solar-blue);
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  color: var(--base01);
+}
+
+.interval-section .card-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 20px;
   margin: 20px 0;
 }
@@ -196,23 +217,26 @@ button:active {
 
 /* Responsive card layout */
 @media (min-width: 1200px) {
-  /* Large screens - up to 3 cards wide */
-  .card-container {
+  /* Large screens - exactly 3 cards wide */
+  .card-container,
+  .interval-section .card-container {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @media (min-width: 768px) and (max-width: 1199px) {
   /* Medium screens - up to 2 cards wide */
-  .card-container {
-    grid-template-columns: repeat(2, 1fr);
+  .card-container,
+  .interval-section .card-container {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
 }
 
 @media (max-width: 767px) {
   /* Small screens/mobile - 1 card wide */
-  .card-container {
-    grid-template-columns: 1fr;
+  .card-container,
+  .interval-section .card-container {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 }
 
