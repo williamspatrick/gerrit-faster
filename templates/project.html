@@ -1,9 +1,8 @@
-{% extends "base.html" %}
-
-{% block title %}Project {{ project }}{% endblock %}
-
+{% extends "base.html" %} {% block title %}Project {{ project }}{% endblock %}
 {% block content %}
-<h1>Project {{ project }}</h1>
-<pre>{{ report_text }}</pre>
-{{ changes_text|safe }}
+<div class="container">
+  <h1>Project {{ project }}</h1>
+  <pre>{{ report_text }}</pre>
+  {{ changes_text|safe }}
+</div>
 {% endblock %}

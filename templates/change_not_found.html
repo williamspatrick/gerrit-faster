@@ -1,8 +1,7 @@
-{% extends "base.html" %}
-
-{% block title %}Change Not Found{% endblock %}
-
-{% block content %}
-<h1>Change Not Found</h1>
-<p>Could not find change: {{ change_id }}</p>
+{% extends "base.html" %} {% block title %}Change Not Found{% endblock %} {%
+block content %}
+<div class="container">
+  <h1>Change Not Found</h1>
+  <p>Could not find change: {{ change_id }}</p>
+</div>
 {% endblock %}
