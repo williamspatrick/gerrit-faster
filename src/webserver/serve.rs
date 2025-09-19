@@ -6,7 +6,7 @@ use askama::Template;
 use axum::{
     Extension, Router,
     extract::Path,
-    response::{Html, IntoResponse},
+    response::{Html, IntoResponse, Response},
     routing::get,
 };
 use tower::ServiceBuilder;
@@ -15,10 +15,11 @@ pub async fn serve(context: ServiceContext, port: u16) {
     // build our application with a route
     let app = Router::new()
         .route("/bot", get(root))
-        .route("/bot/review-status/{id}", get(review_status))
         .route("/bot/report", get(report_overall))
         .route("/bot/report-by-repo", get(report_repo))
         .route("/bot/report/{*project}", get(report_project))
+        .route("/bot/review-status/{id}", get(review_status))
+        .route("/bot/style.css", get(css))
         .route("/bot/user/{id}", get(report_user))
         .layer(ServiceBuilder::new().layer(Extension(context)));
 
@@ -191,4 +192,12 @@ async fn review_status(
         )
             .into_response()
     }
+}
+
+async fn css() -> Response {
+    let css_content = include_str!("../../templates/style.css");
+    Response::builder()
+        .header("Content-Type", "text/css")
+        .body(axum::body::Body::from(css_content))
+        .unwrap()
 }
