@@ -344,6 +344,62 @@ body.dark-mode .header button {
   color: var(--base1);
 }
 
+/* Twisty buttons for collapsible sections */
+.twisty {
+  background: none !important;
+  border: none !important;
+  cursor: pointer;
+  padding: 0;
+  margin-right: 10px;
+  width: 16px; /* Fixed size square */
+  height: 16px; /* Fixed size square */
+  border-radius: 0;
+  box-shadow: none;
+  color: inherit !important; /* Same color as parent text */
+  vertical-align: middle;
+  position: relative;
+  font-size: 0; /* Hide any text content */
+}
+
+/* Create down-facing triangle using CSS */
+.twisty::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid currentColor; /* Use current text color */
+}
+
+/* Create right-facing triangle when collapsed */
+.twisty.collapsed::before {
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 5px solid currentColor;
+  border-right: none;
+}
+
+.twisty:hover {
+  background: none !important;
+  transform: none;
+}
+
+/* Dark mode override for twisty buttons */
+body.dark-mode .twisty {
+  background: none !important;
+  color: inherit !important;
+  border: none !important;
+}
+
+body.dark-mode .twisty:hover {
+  background: none !important;
+  color: inherit !important;
+}
+
 /* Additional styles for the main content to avoid overlap with fixed header */
 .container {
   margin-top: 60px;
