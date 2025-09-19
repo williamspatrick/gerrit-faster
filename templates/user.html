@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block title %}{{ username }}{% endblock %}
+
+{% block content %}
+<h1>{{ username }}</h1>
+<pre>{{ report_text }}</pre>
+{{ changes_text|safe }}
+{% endblock %}
