@@ -2,6 +2,7 @@ use crate::changes::status::NextStepOwner;
 use crate::context::ServiceContext;
 use chrono::{DateTime, Utc};
 use enum_map::{Enum, EnumMap};
+use std::collections::HashMap;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Enum)]
@@ -44,11 +45,33 @@ impl fmt::Display for TimeInterval {
     }
 }
 
+/// A map structure that tracks counts by next step owner
+#[derive(Debug, Default)]
+pub struct ChangesByOwner(EnumMap<NextStepOwner, (u64, Vec<u64>)>);
+
+impl ChangesByOwner {
+    /// Increment the count for a specific next step owner
+    pub fn increment(&mut self, owner: NextStepOwner, id_number: u64) {
+        let i = &mut self.0[owner];
+        i.0 += 1;
+        i.1.push(id_number);
+    }
+
+    /// Get the count for a specific next step owner
+    pub fn get_count(&self, owner: NextStepOwner) -> u64 {
+        self.0[owner].0
+    }
+
+    pub fn get_changes(&self, owner: NextStepOwner) -> Vec<u64> {
+        let mut result = self.0[owner].1.clone();
+        result.sort();
+        result
+    }
+}
+
 /// A nested map structure that tracks counts by time interval and next step owner
 #[derive(Debug, Default)]
-pub struct ChangesByOwnerAndTime(
-    EnumMap<TimeInterval, EnumMap<NextStepOwner, (u64, Vec<u64>)>>,
-);
+pub struct ChangesByOwnerAndTime(EnumMap<TimeInterval, ChangesByOwner>);
 
 impl ChangesByOwnerAndTime {
     /// Increment the count for a specific time interval and next step owner combination
@@ -58,9 +81,7 @@ impl ChangesByOwnerAndTime {
         owner: NextStepOwner,
         id_number: u64,
     ) {
-        let i = &mut self.0[time_interval][owner];
-        i.0 += 1;
-        i.1.push(id_number);
+        self.0[time_interval].increment(owner, id_number);
     }
 
     /// Get the count for a specific time interval and next step owner combination
@@ -69,7 +90,7 @@ impl ChangesByOwnerAndTime {
         time_interval: TimeInterval,
         owner: NextStepOwner,
     ) -> u64 {
-        self.0[time_interval][owner].0
+        self.0[time_interval].get_count(owner)
     }
 
     pub fn get_changes(
@@ -77,9 +98,36 @@ impl ChangesByOwnerAndTime {
         time_interval: TimeInterval,
         owner: NextStepOwner,
     ) -> Vec<u64> {
-        let mut result = self.0[time_interval][owner].1.clone();
-        result.sort();
-        result
+        self.0[time_interval].get_changes(owner)
+    }
+}
+
+/// A map structure that tracks changes by owner, organized by repository
+#[derive(Debug, Default)]
+pub struct ChangesByOwnerAndRepo(HashMap<String, ChangesByOwner>);
+
+impl ChangesByOwnerAndRepo {
+    /// Increment the count for a specific repository and owner
+    pub fn increment(
+        &mut self,
+        repo: String,
+        owner: NextStepOwner,
+        id_number: u64,
+    ) {
+        self.0
+            .entry(repo)
+            .or_insert_with(ChangesByOwner::default)
+            .increment(owner, id_number);
+    }
+
+    /// Get the changes by owner for a specific repository
+    pub fn get_repo_changes(&self, repo: &str) -> Option<&ChangesByOwner> {
+        self.0.get(repo)
+    }
+
+    /// Get all repositories
+    pub fn get_repos(&self) -> Vec<&String> {
+        self.0.keys().collect()
     }
 }
 
@@ -111,12 +159,46 @@ pub fn changes_by_owner_time(
 
     changes
 }
-pub fn report(
+
+pub fn changes_by_owner_repo(
+    context: &ServiceContext,
+    owner: Option<String>,
+) -> ChangesByOwnerAndRepo {
+    let mut changes = ChangesByOwnerAndRepo::default();
+
+    for (_, change) in &context.lock().unwrap().changes.changes {
+        if let Some(ref owner_name) = owner
+            && !change.change.owner.username.eq(owner_name)
+        {
+            continue;
+        }
+
+        let repo = change.change.project.clone();
+        let owner = NextStepOwner::from(change.review_state.clone());
+
+        changes.increment(repo, owner, change.change.id_number);
+    }
+
+    changes
+}
+
+pub fn report_by_time(
     context: &ServiceContext,
     project: Option<String>,
     owner: Option<String>,
 ) -> String {
     report_by_owner_time(&changes_by_owner_time(context, project, owner))
+}
+
+pub fn report_by_repo<F>(
+    context: &ServiceContext,
+    owner: Option<String>,
+    repo_transform: Option<F>,
+) -> String
+where
+    F: Fn(&str) -> String,
+{
+    report_by_owner_repo(&changes_by_owner_repo(context, owner), repo_transform)
 }
 
 pub fn report_by_owner_time(changes: &ChangesByOwnerAndTime) -> String {
@@ -149,4 +231,61 @@ pub fn report_by_owner_time(changes: &ChangesByOwnerAndTime) -> String {
     }
 
     table.to_string()
+}
+
+pub fn report_by_owner_repo<F>(
+    changes: &ChangesByOwnerAndRepo,
+    repo_transform: Option<F>,
+) -> String
+where
+    F: Fn(&str) -> String,
+{
+    let mut table = comfy_table::Table::new();
+    table
+        .load_preset(comfy_table::presets::UTF8_FULL)
+        .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
+        .set_header(vec!["", "Community", "Maintainers", "Author"]);
+
+    // Get all repos and sort them for consistent output
+    let mut repos: Vec<&String> = changes.get_repos();
+    repos.sort();
+
+    // Add a row for each repository (using plain repo names)
+    for repo in &repos {
+        if let Some(repo_changes) = changes.get_repo_changes(repo) {
+            table.add_row(vec![
+                (*repo).clone(),
+                repo_changes.get_count(NextStepOwner::Community).to_string(),
+                repo_changes
+                    .get_count(NextStepOwner::Maintainer)
+                    .to_string(),
+                repo_changes.get_count(NextStepOwner::Author).to_string(),
+            ]);
+        }
+    }
+
+    // Generate the table as string
+    let table_string = table.to_string();
+
+    // If we have a transform function, apply it post-generation
+    if let Some(transform) = repo_transform {
+        let mut result = table_string;
+        // Replace each repo name with its transformed version
+        // We need to be careful about partial matches, so we'll replace
+        // with delimiters (whitespace) around the repo names
+        for repo in &repos {
+            let plain_repo = (*repo).to_string();
+            let transformed_repo = transform(repo);
+
+            // Replace with proper delimiters to avoid partial matches
+            // comfy-table typically adds spaces around cell content
+            result = result.replace(
+                &format!(" {} ", plain_repo),
+                &format!(" {} ", transformed_repo),
+            );
+        }
+        return result;
+    }
+
+    table_string
 }
