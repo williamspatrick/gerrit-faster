@@ -49,7 +49,30 @@ fn list_of_changes(
         if owner == NextStepOwner::Author && !include_author {
             continue;
         }
+
+        // Check if this owner has any changes to display
+        let mut owner_has_changes = false;
+        for interval in [
+            TimeInterval::Under24Hours,
+            TimeInterval::Under72Hours,
+            TimeInterval::Under2Weeks,
+            TimeInterval::Under8Weeks,
+            TimeInterval::Over8Weeks,
+        ] {
+            let local_changes = changes.get_changes(interval, owner);
+            if !local_changes.is_empty() {
+                owner_has_changes = true;
+                break;
+            }
+        }
+
+        if !owner_has_changes {
+            continue;
+        }
+
         result += &format!("<h2>{:?}</h2>\n", owner);
+        result += "<div class=\"card-container\">\n";
+
         for interval in [
             TimeInterval::Under24Hours,
             TimeInterval::Under72Hours,
@@ -62,27 +85,37 @@ fn list_of_changes(
                 continue;
             }
 
-            result += &format!("<h3>{}</h3>\n<ul>\n", interval.to_string());
             for change in local_changes {
                 let change_data_opt =
                     context.lock().unwrap().changes.get(change);
                 if let Some(change_data) = change_data_opt {
+                    result += "<div class=\"change-card\">\n";
                     result += &format!(
-                        "<li><b>{}</b>{}<ul><li><a href=\"https://gerrit.openbmc.org/c/{}/+/{}\">{}</a></li></ul></li>\n",
-                        change_data.change.project,
-                        if owner == NextStepOwner::Author {
-                            format!(" ({:?})", change_data.review_state)
-                        } else {
-                            String::new()
-                        },
-                        change_data.change.project,
-                        change_data.change.id_number,
+                        "<div class=\"project-name\">{}</div>\n",
+                        change_data.change.project
+                    );
+
+                    if owner == NextStepOwner::Author {
+                        result += &format!(
+                            "<div class=\"review-state\">{:?}</div>\n",
+                            change_data.review_state
+                        );
+                    }
+
+                    result += &format!(
+                        "<div class=\"subject\">{}</div>\n",
                         change_data.change.subject
                     );
+                    result += &format!(
+                        "<a class=\"gerrit-link\" href=\"https://gerrit.openbmc.org/c/{}/+/{}\">View in Gerrit</a>\n",
+                        change_data.change.project,
+                        change_data.change.id_number
+                    );
+                    result += "</div>\n";
                 }
             }
-            result += "</ul>\n";
         }
+        result += "</div>\n";
     }
 
     result
