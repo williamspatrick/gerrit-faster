@@ -1,39 +1,124 @@
+/* Solarized color palette */
+:root {
+  /* Solarized dark colors */
+  --base03: #002b36;
+  --base02: #073642;
+  --base01: #586e75;
+  --base00: #657b83;
+  --base0: #839496;
+  --base1: #93a1a1;
+  --base2: #eee8d5;
+  --base3: #fdf6e3;
+  --solar-yellow: #b58900;
+  --solar-orange: #cb4b16;
+  --solar-red: #dc322f;
+  --solar-magenta: #d33682;
+  --solar-violet: #6c71c4;
+  --solar-blue: #268bd2;
+  --solar-cyan: #2aa198;
+  --solar-green: #859900;
+}
+
+/* Light mode (default) - Solarized Light */
 body {
-    font-family: Arial, sans-serif;
-    margin: 40px;
-    background-color: #f5f5f5;
+  font-family: Arial, sans-serif;
+  margin: 40px;
+  background-color: var(--base3);
+  color: var(--base00);
+  transition:
+    background-color 0.3s,
+    color 0.3s;
 }
 
 pre {
-    font-family: monospace;
-    background-color: #f5f5f5;
-    padding: 10px;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  font-family: monospace;
+  background-color: var(--base2);
+  color: var(--base00);
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-h1, h2, h3 {
-    color: #333;
+h1,
+h2,
+h3 {
+  color: var(--base01);
 }
 
 a {
-    color: #0066cc;
-    text-decoration: none;
+  color: var(--solar-blue);
+  text-decoration: none;
 }
 
 a:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 ul {
-    list-style-type: none;
-    padding: 0;
+  list-style-type: none;
+  padding: 0;
 }
 
 li {
-    margin-bottom: 10px;
-    padding: 10px;
-    background-color: #fff;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  padding: 10px;
+  background-color: var(--base2);
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode - Solarized Dark */
+body.dark-mode {
+  background-color: var(--base03);
+  color: var(--base0);
+}
+
+body.dark-mode pre {
+  background-color: var(--base02);
+  color: var(--base0);
+}
+
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3 {
+  color: var(--base1);
+}
+
+body.dark-mode li {
+  background-color: var(--base02);
+  color: var(--base0);
+}
+
+/* Theme toggle styles */
+.header {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+}
+
+.theme-toggle button {
+  background-color: var(--base2);
+  border: 1px solid var(--base1);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s;
+}
+
+body.dark-mode .theme-toggle button {
+  background-color: var(--base02);
+  border: 1px solid var(--base01);
+  color: var(--base1);
+}
+
+/* Additional styles for the main content to avoid overlap with fixed header */
+.container {
+  margin-top: 60px;
 }
