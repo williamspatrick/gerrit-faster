@@ -283,15 +283,22 @@ body.dark-mode .change-card h4 {
   color: var(--base1);
 }
 
-/* Theme toggle styles */
+/* Header button styles */
 .header {
   position: fixed;
   top: 10px;
   right: 10px;
   z-index: 1000;
+  display: flex;
+  gap: 10px;
 }
 
-.theme-toggle button {
+.header-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.header button {
   background-color: var(--base2);
   border: 1px solid var(--base1);
   border-radius: 50%;
@@ -307,7 +314,7 @@ body.dark-mode .change-card h4 {
   margin: 0;
 }
 
-body.dark-mode .theme-toggle button {
+body.dark-mode .header button {
   background-color: var(--base02);
   border: 1px solid var(--base01);
   color: var(--base1);

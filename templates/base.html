@@ -6,10 +6,13 @@
   </head>
   <body>
     <div class="header">
-      <div class="theme-toggle">
-        <button id="theme-toggle" onclick="toggleTheme()">
-          <span id="theme-icon">🌙</span>
-        </button>
+      <div class="header-buttons">
+        <button id="home-button" onclick="goHome()" title="Home">🏠</button>
+        <div class="theme-toggle">
+          <button id="theme-toggle" onclick="toggleTheme()">
+            <span id="theme-icon">🌙</span>
+          </button>
+        </div>
       </div>
     </div>
     {% block content %}{% endblock %}
@@ -41,6 +44,19 @@
           localStorage.setItem("theme", "dark");
         }
       }
+
+      function goHome() {
+        window.location.href = "/bot";
+      }
+
+      // Hide home button on root page
+      document.addEventListener("DOMContentLoaded", function () {
+        const path = window.location.pathname;
+        const homeButton = document.getElementById("home-button");
+        if (path === "/bot" || path === "/bot/") {
+          homeButton.style.display = "none";
+        }
+      });
     </script>
   </body>
 </html>
