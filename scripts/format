@@ -1,0 +1,4 @@
+#!/usr/bin/bash -e
+
+cargo fmt
+prettier --write '**/*.{css,html,json,yaml,yml}'
