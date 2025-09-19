@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block title %}Overall Status{% endblock %}
+
+{% block content %}
+<h1>Overall Status</h1>
+<pre>{{ report_text }}</pre>
+{{ changes_text|safe }}
+{% endblock %}

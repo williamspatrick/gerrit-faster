@@ -1,6 +1,8 @@
 use crate::changes::report::{self as ChangeReport, TimeInterval};
 use crate::changes::{self as Changes, status::NextStepOwner};
 use crate::context::ServiceContext;
+use crate::webserver::templates::*;
+use askama::Template;
 use axum::{
     Extension, Router,
     extract::Path,
@@ -29,74 +31,8 @@ pub async fn serve(context: ServiceContext) {
 }
 
 async fn root(Extension(_context): Extension<ServiceContext>) -> Html<String> {
-    Html(format!(
-        r#"<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>OpenBMC Bot</title>
-</head>
-<body>
-    <div class="container">
-        <h1>OpenBMC Bot</h1>
-
-        <div class="section">
-            <h2>Reports</h2>
-            <div class="global-queries">
-                <button onclick="window.location.href='/bot/report'">All Open</button>
-                <br>
-                <button onclick="window.location.href='/bot/report-by-repo'">Per-Repo Summary</button>
-            </div>
-            <br>
-            <div class="form-group">
-                <label for="project">Query:</label>
-                <input type="text" id="query" placeholder="Enter project or username">
-                <button onclick="goToProject()">Project</button>
-                <button onclick="goToUser()">User</button>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2>Change Status</h2>
-            <div class="form-group">
-                <label for="changeId">Change ID:</label>
-                <input type="text" id="change_id" placeholder="Enter change ID">
-                <button onclick="goToChangeStatus()">Change</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function goToProject() {{
-            const project = document.getElementById('query').value.trim();
-            if (project) {{
-                window.location.href = '/bot/report/' + project;
-            }} else {{
-                alert('Please enter a project name');
-            }}
-        }}
-
-        function goToUser() {{
-            const user = document.getElementById('query').value.trim();
-            if (user) {{
-                window.location.href = '/bot/user/' + encodeURIComponent(user);
-            }} else {{
-                alert('Please enter a username');
-            }}
-        }}
-
-        function goToChangeStatus() {{
-            const changeId = document.getElementById('change_id').value.trim();
-            if (changeId) {{
-                window.location.href = '/bot/review-status/' + encodeURIComponent(changeId);
-            }} else {{
-                alert('Please enter a change ID');
-            }}
-        }}
-    </script>
-</body>
-</html>"#,
-    ))
+    let template = RootTemplate;
+    Html(template.render().unwrap())
 }
 
 fn list_of_changes(
@@ -159,20 +95,11 @@ async fn report_overall(
     let report_text = ChangeReport::report_by_owner_time(&changes);
     let changes_text = list_of_changes(&changes, &context, false);
 
-    Html(format!(
-        r#"<!DOCTYPE html>
-<html>
-    <head>
-        <title>Overall Status</title>
-    </head>
-    <body>
-        <h1>Overall Status</h1>
-        <pre style=\"font-family: monospace;\">{}</pre>
-        {}
-    </body>
-</html>"#,
-        report_text, changes_text,
-    ))
+    let template = OverallTemplate {
+        report_text,
+        changes_text,
+    };
+    Html(template.render().unwrap())
 }
 
 async fn report_repo(
@@ -186,22 +113,8 @@ async fn report_repo(
         }),
     );
 
-    Html(format!(
-        r#"<!DOCTYPE html>
-<html>
-    <head>
-        <title>Per-Repo Report</title>
-        <style>
-            pre a {{ font-family: monospace; text-decoration: none; color: #0066cc; }}
-        </style>
-    </head>
-    <body>
-        <h1>Per-Repo Report</h1>
-        <pre style=\"font-family: monospace;\">{}</pre>
-    </body>
-</html>"#,
-        report_text,
-    ))
+    let template = RepoTemplate { report_text };
+    Html(template.render().unwrap())
 }
 
 async fn report_project(
@@ -219,20 +132,12 @@ async fn report_project(
     let report_text = ChangeReport::report_by_owner_time(&changes);
     let changes_text = list_of_changes(&changes, &context, false);
 
-    Html(format!(
-        r#"<!DOCTYPE html>
-<html>
-    <head>
-        <title>Project {}</title>
-    </head>
-    <body>
-        <h1>Project {}</h1>
-        <pre style="font-family: monospace;">{}</pre>
-        {}
-    </body>
-</html>"#,
-        project, project, report_text, changes_text,
-    ))
+    let template = ProjectTemplate {
+        project,
+        report_text,
+        changes_text,
+    };
+    Html(template.render().unwrap())
 }
 
 async fn report_user(
@@ -250,20 +155,12 @@ async fn report_user(
     let report_text = ChangeReport::report_by_owner_time(&changes);
     let changes_text = list_of_changes(&changes, &context, true);
 
-    Html(format!(
-        r#"<!DOCTYPE html>
-<html>
-    <head>
-        <title>{}</title>
-    </head>
-    <body>
-        <h1>{}</h1>
-        <pre style="font-family: monospace;">{}</pre>
-        {}
-    </body>
-</html>"#,
-        username, username, report_text, changes_text,
-    ))
+    let template = UserTemplate {
+        username,
+        report_text,
+        changes_text,
+    };
+    Html(template.render().unwrap())
 }
 
 async fn review_status(
@@ -282,27 +179,17 @@ async fn review_status(
     }
 
     if let Some(change) = change {
-        Html(std::format!(
-            r#"<!DOCTYPE html>
-<html>
-    <body>
-        <h1>Change {}</h1>
-        <p>Review Status: {:?}</p>
-    </body>
-</html>"#,
+        let template = ChangeTemplate {
             change_id,
-            change.review_state
-        )).into_response()
+            review_status: format!("{:?}", change.review_state),
+        };
+        Html(template.render().unwrap()).into_response()
     } else {
-        (axum::http::StatusCode::NOT_FOUND, Html(std::format!(
-            r#"<!DOCTYPE html>
-<html>
-    <body>
-        <h1>Change Not Found</h1>
-        <p>Could not find change: {}</p>
-    </body>
-</html>"#,
-            change_id
-        ))).into_response()
+        let template = ChangeNotFoundTemplate { change_id };
+        (
+            axum::http::StatusCode::NOT_FOUND,
+            Html(template.render().unwrap()),
+        )
+            .into_response()
     }
 }

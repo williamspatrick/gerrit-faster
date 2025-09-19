@@ -14,4 +14,5 @@ pub mod gerrit {
 }
 pub mod webserver {
     pub mod serve;
+    pub mod templates;
 }
