@@ -67,6 +67,55 @@ li {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Form elements */
+input[type="text"] {
+  padding: 8px 12px;
+  border: 1px solid var(--base1);
+  border-radius: 4px;
+  background-color: var(--base2);
+  color: var(--base00);
+  font-size: 16px;
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--solar-blue);
+  box-shadow: 0 0 0 2px rgba(38, 139, 210, 0.2);
+}
+
+button {
+  padding: 8px 16px;
+  background-color: var(--solar-blue);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-right: 10px;
+  margin-bottom: 10px;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: var(--solar-cyan);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
 /* Card layout for changes */
 .card-container {
   display: grid;
@@ -80,7 +129,9 @@ li {
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   padding: 15px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .change-card:hover {
@@ -180,6 +231,27 @@ body.dark-mode .change-card .gerrit-link:hover {
   background-color: var(--solar-cyan);
 }
 
+/* Dark mode form elements */
+body.dark-mode input[type="text"] {
+  background-color: var(--base02);
+  color: var(--base0);
+  border-color: var(--base01);
+}
+
+body.dark-mode input[type="text"]:focus {
+  border-color: var(--solar-blue);
+  box-shadow: 0 0 0 2px rgba(38, 139, 210, 0.3);
+}
+
+body.dark-mode button {
+  background-color: var(--solar-blue);
+  color: var(--base3);
+}
+
+body.dark-mode button:hover {
+  background-color: var(--solar-cyan);
+}
+
 /* Dark mode - Solarized Dark */
 body.dark-mode {
   background-color: var(--base03);
@@ -232,6 +304,7 @@ body.dark-mode .change-card h4 {
   justify-content: center;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   transition: background-color 0.3s;
+  margin: 0;
 }
 
 body.dark-mode .theme-toggle button {
