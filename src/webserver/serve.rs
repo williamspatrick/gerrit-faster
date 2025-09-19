@@ -70,7 +70,17 @@ fn list_of_changes(
             continue;
         }
 
-        result += &format!("<h2>{:?}</h2>\n", owner);
+        let owner_str = format!("{:?}", owner);
+        let section_id = owner_str.to_lowercase();
+        result += &format!(
+            r#"
+<h2>
+    <button class="twisty" onclick="toggleSection('{}')" aria-label="Toggle section"></button> {}
+</h2>
+<div id="{}-section">
+"#,
+            section_id, owner_str, section_id
+        );
 
         for interval in [
             TimeInterval::Under24Hours,
@@ -122,6 +132,7 @@ fn list_of_changes(
             result += "</div>\n"; // Close interval-container
             result += "</div>\n"; // Close interval-section
         }
+        result += "</div>\n"; // Close owner section
     }
 
     result

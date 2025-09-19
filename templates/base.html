@@ -57,6 +57,19 @@
           homeButton.style.display = "none";
         }
       });
+
+      // Toggle section visibility
+      function toggleSection(sectionName) {
+        const section = document.getElementById(sectionName + "-section");
+        const button = event.target;
+        if (section.style.display === "none") {
+          section.style.display = "block";
+          button.classList.remove("collapsed");
+        } else {
+          section.style.display = "none";
+          button.classList.add("collapsed");
+        }
+      }
     </script>
   </body>
 </html>
