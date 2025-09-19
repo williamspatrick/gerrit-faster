@@ -15,6 +15,7 @@ pub async fn serve(context: ServiceContext) {
         .route("/bot", get(root))
         .route("/bot/review-status/{id}", get(review_status))
         .route("/bot/report", get(report_overall))
+        .route("/bot/report-by-repo", get(report_repo))
         .route("/bot/report/{*project}", get(report_project))
         .route("/bot/user/{id}", get(report_user))
         .layer(ServiceBuilder::new().layer(Extension(context)));
@@ -41,12 +42,17 @@ async fn root(Extension(_context): Extension<ServiceContext>) -> Html<String> {
 
         <div class="section">
             <h2>Reports</h2>
+            <div class="global-queries">
+                <button onclick="window.location.href='/bot/report'">All Open</button>
+                <br>
+                <button onclick="window.location.href='/bot/report-by-repo'">Per-Repo Summary</button>
+            </div>
+            <br>
             <div class="form-group">
                 <label for="project">Query:</label>
                 <input type="text" id="query" placeholder="Enter project or username">
                 <button onclick="goToProject()">Project</button>
                 <button onclick="goToUser()">User</button>
-                <button onclick="window.location.href='/bot/report'">All Pending</button>
             </div>
         </div>
 
@@ -154,8 +160,47 @@ async fn report_overall(
     let changes_text = list_of_changes(&changes, &context, false);
 
     Html(format!(
-        "<html><head><title>Overall Status</title></head><body><h1>Overall Status</h1><pre style=\"font-family: monospace;\">{}</pre>{}</body></html>",
+        r#"<!DOCTYPE html>
+<html>
+    <head>
+        <title>Overall Status</title>
+    </head>
+    <body>
+        <h1>Overall Status</h1>
+        <pre style=\"font-family: monospace;\">{}</pre>
+        {}
+    </body>
+</html>"#,
         report_text, changes_text,
+    ))
+}
+
+async fn report_repo(
+    Extension(context): Extension<ServiceContext>,
+) -> Html<String> {
+    let report_text = ChangeReport::report_by_repo(
+        &context,
+        None,
+        Some(|repo: &str| {
+            format!("<a href=\"/bot/report/{}\">{}</a>", repo, repo)
+        }),
+    );
+
+    Html(format!(
+        r#"<!DOCTYPE html>
+<html>
+    <head>
+        <title>Per-Repo Report</title>
+        <style>
+            pre a {{ font-family: monospace; text-decoration: none; color: #0066cc; }}
+        </style>
+    </head>
+    <body>
+        <h1>Per-Repo Report</h1>
+        <pre style=\"font-family: monospace;\">{}</pre>
+    </body>
+</html>"#,
+        report_text,
     ))
 }
 
