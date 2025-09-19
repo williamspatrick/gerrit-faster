@@ -71,7 +71,6 @@ fn list_of_changes(
         }
 
         result += &format!("<h2>{:?}</h2>\n", owner);
-        result += "<div class=\"card-container\">\n";
 
         for interval in [
             TimeInterval::Under24Hours,
@@ -84,6 +83,12 @@ fn list_of_changes(
             if local_changes.is_empty() {
                 continue;
             }
+
+            result += &format!(
+                "<div class=\"interval-section\">\n<h3 class=\"interval-header\">{}</h3>\n",
+                interval.to_string()
+            );
+            result += "<div class=\"card-container\">\n";
 
             for change in local_changes {
                 let change_data_opt =
@@ -114,8 +119,9 @@ fn list_of_changes(
                     result += "</div>\n";
                 }
             }
+            result += "</div>\n"; // Close interval-container
+            result += "</div>\n"; // Close interval-section
         }
-        result += "</div>\n";
     }
 
     result
