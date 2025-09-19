@@ -11,7 +11,7 @@ use axum::{
 };
 use tower::ServiceBuilder;
 
-pub async fn serve(context: ServiceContext) {
+pub async fn serve(context: ServiceContext, port: u16) {
     // build our application with a route
     let app = Router::new()
         .route("/bot", get(root))
@@ -23,9 +23,8 @@ pub async fn serve(context: ServiceContext) {
         .layer(ServiceBuilder::new().layer(Extension(context)));
 
     // run it
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
+    let addr = format!("127.0.0.1:{}", port);
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     println!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
