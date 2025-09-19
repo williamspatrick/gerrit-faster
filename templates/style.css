@@ -75,36 +75,12 @@ li {
   margin: 20px 0;
 }
 
-/* Responsive card layout */
-@media (min-width: 1200px) {
-  /* Large screens - up to 3 cards wide */
-  .card-container {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1199px) {
-  /* Medium screens - up to 2 cards wide */
-  .card-container {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 767px) {
-  /* Small screens/mobile - 1 card wide */
-  .card-container {
-    grid-template-columns: 1fr;
-  }
-}
-
 .change-card {
   background-color: var(--base2);
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   padding: 15px;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .change-card:hover {
@@ -134,15 +110,15 @@ li {
   padding: 3px 8px;
   border-radius: 4px;
   font-size: 0.85em;
-  background-color: var(--base1);
-  color: var(--base3);
+  background-color: var(--solar-yellow); /* Using yellow for review state */
+  color: white;
   margin-bottom: 10px;
 }
 
 .change-card .gerrit-link {
   display: inline-block;
   padding: 5px 10px;
-  background-color: var(--solar-blue);
+  background-color: var(--solar-blue); /* Using blue for the button */
   color: white;
   text-decoration: none;
   border-radius: 4px;
@@ -150,7 +126,7 @@ li {
 }
 
 .change-card .gerrit-link:hover {
-  background-color: var(--solar-blue);
+  background-color: var(--solar-cyan); /* Using cyan on hover */
   opacity: 0.9;
   text-decoration: none;
 }
@@ -165,6 +141,43 @@ li {
   box-shadow: none;
   padding: 2px 0;
   margin-bottom: 0;
+}
+
+/* Responsive card layout */
+@media (min-width: 1200px) {
+  /* Large screens - up to 3 cards wide */
+  .card-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  /* Medium screens - up to 2 cards wide */
+  .card-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  /* Small screens/mobile - 1 card wide */
+  .card-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark mode card colors */
+body.dark-mode .change-card .review-state {
+  background-color: var(--solar-yellow);
+  color: var(--base3);
+}
+
+body.dark-mode .change-card .gerrit-link {
+  background-color: var(--solar-blue);
+  color: var(--base3);
+}
+
+body.dark-mode .change-card .gerrit-link:hover {
+  background-color: var(--solar-cyan);
 }
 
 /* Dark mode - Solarized Dark */
@@ -196,11 +209,6 @@ body.dark-mode .change-card {
 
 body.dark-mode .change-card h4 {
   color: var(--base1);
-}
-
-body.dark-mode .change-card .review-state {
-  background-color: var(--base01);
-  color: var(--base2);
 }
 
 /* Theme toggle styles */
