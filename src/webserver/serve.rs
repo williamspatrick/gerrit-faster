@@ -220,7 +220,17 @@ async fn report_project(
     let changes_text = list_of_changes(&changes, &context, false);
 
     Html(format!(
-        "<html><head><title>Project {}</title></head><body><h1>Project {}</h1><pre style=\"font-family: monospace;\">{}</pre>{}</body></html>",
+        r#"<!DOCTYPE html>
+<html>
+    <head>
+        <title>Project {}</title>
+    </head>
+    <body>
+        <h1>Project {}</h1>
+        <pre style="font-family: monospace;">{}</pre>
+        {}
+    </body>
+</html>"#,
         project, project, report_text, changes_text,
     ))
 }
@@ -241,7 +251,17 @@ async fn report_user(
     let changes_text = list_of_changes(&changes, &context, true);
 
     Html(format!(
-        "<html><head><title>{}</title></head><body><h1>{}</h1><pre style=\"font-family: monospace;\">{}</pre>{}</body></html>",
+        r#"<!DOCTYPE html>
+<html>
+    <head>
+        <title>{}</title>
+    </head>
+    <body>
+        <h1>{}</h1>
+        <pre style="font-family: monospace;">{}</pre>
+        {}
+    </body>
+</html>"#,
         username, username, report_text, changes_text,
     ))
 }
@@ -263,13 +283,25 @@ async fn review_status(
 
     if let Some(change) = change {
         Html(std::format!(
-            "<html><body><h1>Change {}</h1><p>Review Status: {:?}</p></body></html>",
+            r#"<!DOCTYPE html>
+<html>
+    <body>
+        <h1>Change {}</h1>
+        <p>Review Status: {:?}</p>
+    </body>
+</html>"#,
             change_id,
             change.review_state
         )).into_response()
     } else {
         (axum::http::StatusCode::NOT_FOUND, Html(std::format!(
-            "<html><body><h1>Change Not Found</h1><p>Could not find change: {}</p></body></html>",
+            r#"<!DOCTYPE html>
+<html>
+    <body>
+        <h1>Change Not Found</h1>
+        <p>Could not find change: {}</p>
+    </body>
+</html>"#,
             change_id
         ))).into_response()
     }
