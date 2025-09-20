@@ -126,6 +126,14 @@ fn list_of_changes(
                         change_data.change.project,
                         change_data.change.id_number
                     );
+
+                    // Add insertions/deletions box
+                    result += &format!(
+                        "<div class=\"change-stats\"><span class=\"insertions\">+{}</span> / <span class=\"deletions\">-{}</span></div>\n",
+                        change_data.change.insertions,
+                        change_data.change.deletions
+                    );
+
                     result += "</div>\n";
                 }
             }
