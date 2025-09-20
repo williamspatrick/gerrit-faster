@@ -167,6 +167,14 @@ async fn send_community_review_reminder(
         ));
     }
 
+    // Add webserver link if WEBSERVER_HOSTNAME is set
+    if let Ok(hostname) = std::env::var("WEBSERVER_HOSTNAME") {
+        message.push_str(&format!(
+            "\nSee more at https://{}/bot/report",
+            hostname
+        ));
+    }
+
     let channel_id = serenity::ChannelId::new(channel_id);
     if let Err(e) = channel_id.say(http, message).await {
         error!("Failed to send message to Discord channel: {}", e);
