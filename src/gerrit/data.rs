@@ -5,11 +5,17 @@ use std::ops::Deref;
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct AccountInfo {
+    #[serde(default = "default_username")]
     pub username: String,
+}
+
+fn default_username() -> String {
+    "unknown".to_string()
 }
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct ApprovalInfo {
+    #[serde(default = "default_username")]
     pub username: String,
     #[serde(default)]
     pub value: i64,
