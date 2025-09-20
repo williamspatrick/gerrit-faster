@@ -157,10 +157,12 @@ async fn send_community_review_reminder(
         let waiting_time = format_duration(duration);
 
         message.push_str(&format!(
-            "- **{}**: [{}]({}) (waiting {})\n",
+            "- **{}**: [{}]({}) (+{}/-{}, waiting **{}**)\n",
             change.change.project,
             change.change.subject,
             change_url,
+            change.change.insertions,
+            change.change.deletions,
             waiting_time
         ));
     }
