@@ -87,6 +87,8 @@ pub struct ChangeInfoRaw {
     pub work_in_progress: bool,
     #[serde(default)]
     pub mergeable: bool,
+    pub insertions: i64,
+    pub deletions: i64,
     #[serde(default)]
     pub unresolved_comment_count: u64,
 
@@ -113,6 +115,8 @@ pub struct ChangeInfo {
     pub status: ChangeStatus,
     pub work_in_progress: bool,
     pub mergeable: bool,
+    pub insertions: i64,
+    pub deletions: i64,
     pub unresolved_comment_count: u64,
 
     pub labels: HashMap<String, LabelInfo>,
@@ -148,6 +152,8 @@ impl From<ChangeInfoRaw> for ChangeInfo {
             status: raw.status,
             work_in_progress: raw.work_in_progress,
             mergeable: raw.mergeable,
+            insertions: raw.insertions,
+            deletions: raw.deletions,
             unresolved_comment_count: raw.unresolved_comment_count,
             labels: raw
                 .labels

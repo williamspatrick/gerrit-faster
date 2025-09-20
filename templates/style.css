@@ -189,18 +189,55 @@ button:active {
 
 .change-card .gerrit-link {
   display: inline-block;
-  padding: 5px 10px;
+  padding: 3px 8px;
   background-color: var(--solar-blue); /* Using blue for the button */
   color: white;
   text-decoration: none;
   border-radius: 4px;
-  font-size: 0.9em;
+  font-size: 0.85em;
+  font-weight: bold;
+  margin-top: 10px;
 }
 
 .change-card .gerrit-link:hover {
   background-color: var(--solar-cyan); /* Using cyan on hover */
   opacity: 0.9;
   text-decoration: none;
+}
+
+/* Change stats box */
+.change-stats {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: bold;
+  background-color: var(--base3); /* Light page background */
+  color: var(--base00); /* Dark text */
+  margin-top: 10px;
+  float: right;
+}
+
+.change-stats .insertions {
+  color: var(--solar-green); /* Green for insertions */
+}
+
+.change-stats .deletions {
+  color: var(--solar-red); /* Red for deletions */
+}
+
+/* Dark mode stats box */
+body.dark-mode .change-stats {
+  background-color: var(--base03); /* Dark page background */
+  color: var(--base0); /* Light text */
+}
+
+body.dark-mode .change-stats .insertions {
+  color: var(--solar-green); /* Green for insertions */
+}
+
+body.dark-mode .change-stats .deletions {
+  color: var(--solar-red); /* Red for deletions */
 }
 
 .change-card ul.time-intervals {
