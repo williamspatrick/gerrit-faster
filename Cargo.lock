@@ -816,6 +816,7 @@ dependencies = [
  "dotenv",
  "enum-map",
  "poise",
+ "rand",
  "reqwest 0.12.23",
  "serde",
  "serde_json",

@@ -1,10 +1,21 @@
 use crate::changes as Changes;
-use crate::changes::report as ChangeReport;
+use crate::changes::container::Change;
+use crate::changes::report::{
+    self as ChangeReport, TimeInterval, changes_by_owner_time,
+};
+use crate::changes::status::{NextStepOwner, ReviewState};
 use crate::context::ServiceContext;
+use chrono::Timelike;
 use poise::serenity_prelude as serenity;
+use rand::prelude::*;
+use tracing::{error, info};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, ServiceContext, Error>;
+
+// Constants for community review change selection
+const TOTAL_CHANGES_TO_SELECT: usize = 5;
+const RECENT_CHANGES_TO_SELECT: usize = 4;
 
 // Give a report of outstanding changes.
 #[poise::command(slash_command, prefix_command, rename = "obmc-report")]
@@ -56,6 +67,181 @@ async fn review_status(
     Ok(())
 }
 
+// Get changes that need community review, selecting up to RECENT_CHANGES_TO_SELECT changes that are
+// under 24 hours or under 72 hours old, and then selecting additional changes
+// from the over 72 hours group to make a total of TOTAL_CHANGES_TO_SELECT changes.
+async fn get_community_review_changes(context: &ServiceContext) -> Vec<Change> {
+    // Use existing changes_by_owner_time function to get changes
+    let changes_by_time = changes_by_owner_time(context, None, None);
+
+    // Get the lock on the context to access changes
+    let ctx = context.lock().unwrap();
+
+    // Collect changes in CommunityReview state, separating into recent and older groups
+    let mut recent_changes = Vec::new();
+    let mut older_changes = Vec::new();
+
+    // Process all time intervals in a single iteration
+    for time_interval in [
+        TimeInterval::Under24Hours,
+        TimeInterval::Under72Hours,
+        TimeInterval::Under2Weeks,
+        TimeInterval::Under8Weeks,
+        TimeInterval::Over8Weeks,
+    ] {
+        let change_ids = changes_by_time
+            .get_changes(time_interval, NextStepOwner::Community);
+
+        for id in change_ids {
+            if let Some(change) = ctx.changes.get(id) {
+                // Double-check that the change is actually in CommunityReview state
+                if matches!(change.review_state, ReviewState::CommunityReview) {
+                    // Categorize changes based on time interval
+                    match time_interval {
+                        TimeInterval::Under24Hours
+                        | TimeInterval::Under72Hours => {
+                            recent_changes.push(change);
+                        }
+                        _ => {
+                            older_changes.push(change);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Randomly shuffle both groups
+    let mut rng = thread_rng();
+    recent_changes.shuffle(&mut rng);
+    older_changes.shuffle(&mut rng);
+
+    // Select up to RECENT_CHANGES_TO_SELECT recent changes
+    let recent_count =
+        std::cmp::min(RECENT_CHANGES_TO_SELECT, recent_changes.len());
+    let mut selected_changes: Vec<Change> =
+        recent_changes[..recent_count].to_vec();
+
+    // Select additional changes from older group to make a total of TOTAL_CHANGES_TO_SELECT
+    let additional_count = TOTAL_CHANGES_TO_SELECT - selected_changes.len();
+    let older_count = std::cmp::min(additional_count, older_changes.len());
+    selected_changes.extend(older_changes[..older_count].to_vec());
+
+    selected_changes
+}
+
+// Send community review reminder to Discord
+async fn send_community_review_reminder(
+    context: &ServiceContext,
+    http: &serenity::Http,
+    channel_id: u64,
+) {
+    let changes = get_community_review_changes(context).await;
+
+    if changes.is_empty() {
+        return;
+    }
+
+    let mut message =
+        String::from("Want to help with reviews?  Here's a few:\n\n");
+
+    for change in changes {
+        let change_url = format!(
+            "https://gerrit.openbmc.org/c/{}/+/{}",
+            change.change.project, change.change.id_number
+        );
+
+        // Calculate waiting time
+        let now = chrono::Utc::now();
+        let duration = now.signed_duration_since(change.review_state_updated);
+        let waiting_time = format_duration(duration);
+
+        message.push_str(&format!(
+            "- **{}**: [{}]({}) (waiting {})\n",
+            change.change.project,
+            change.change.subject,
+            change_url,
+            waiting_time
+        ));
+    }
+
+    let channel_id = serenity::ChannelId::new(channel_id);
+    if let Err(e) = channel_id.say(http, message).await {
+        error!("Failed to send message to Discord channel: {}", e);
+    }
+}
+
+// Format duration as simple time string like "1 hour" or "3 days"
+fn format_duration(duration: chrono::Duration) -> String {
+    let hours = duration.num_hours();
+    let days = duration.num_days();
+
+    if days > 0 {
+        if days == 1 {
+            "1 day".to_string()
+        } else {
+            format!("{} days", days)
+        }
+    } else if hours > 0 {
+        if hours == 1 {
+            "1 hour".to_string()
+        } else {
+            format!("{} hours", hours)
+        }
+    } else {
+        "less than 1 hour".to_string()
+    }
+}
+
+// Periodic task for sending community review reminders
+async fn community_review_reminder_task(
+    context: ServiceContext,
+    http: &serenity::Http,
+) {
+    // Get the channel ID from environment variable or exit if not set
+    let channel_id = match std::env::var("DISCORD_REVIEW_CHANNEL_ID") {
+        Ok(id) => match id.parse::<u64>() {
+            Ok(parsed_id) => parsed_id,
+            Err(_) => {
+                error!("Invalid DISCORD_REVIEW_CHANNEL_ID: {}", id);
+                return;
+            }
+        },
+        Err(_) => {
+            // Channel ID not set, exit the task
+            info!(
+                "DISCORD_REVIEW_CHANNEL_ID not set, community review reminders disabled."
+            );
+            return;
+        }
+    };
+
+    loop {
+        // Calculate delay until next hour using wall clock time
+        let now = chrono::Utc::now();
+        let next_hour = now
+            .with_minute(0)
+            .unwrap()
+            .with_second(0)
+            .unwrap()
+            .with_nanosecond(0)
+            .unwrap()
+            + chrono::Duration::hours(1);
+
+        let duration = next_hour.signed_duration_since(now);
+        let seconds_until_next_hour = duration.num_seconds() as u64;
+
+        // Sleep until next hour
+        tokio::time::sleep(tokio::time::Duration::from_secs(
+            seconds_until_next_hour,
+        ))
+        .await;
+
+        // Send reminder
+        send_community_review_reminder(&context, http, channel_id).await;
+    }
+}
+
 pub async fn serve(context: ServiceContext) {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
     let intents = serenity::GatewayIntents::non_privileged();
@@ -77,6 +263,19 @@ pub async fn serve(context: ServiceContext) {
                 for guild in _ready.guilds.iter() {
                     guild.id.edit_nickname(ctx, Some("openbmc-bot")).await?;
                 }
+
+                // Clone context and http for the periodic task
+                let context_clone = context.clone();
+                let http = ctx.http.clone();
+
+                // Start the periodic task for community review reminders
+                tokio::spawn(async move {
+                    community_review_reminder_task(
+                        context_clone,
+                        http.as_ref(),
+                    )
+                    .await;
+                });
 
                 Ok(context)
             })
