@@ -239,7 +239,7 @@ async fn community_review_reminder_task(
             + chrono::Duration::hours(1);
 
         let duration = next_hour.signed_duration_since(now);
-        let seconds_until_next_hour = duration.num_seconds() as u64;
+        let seconds_until_next_hour = duration.num_seconds() as u64 + 1;
 
         // Sleep until next hour
         tokio::time::sleep(tokio::time::Duration::from_secs(
