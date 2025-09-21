@@ -70,7 +70,10 @@ async fn review_status(
 // Get changes that need community review, selecting up to RECENT_CHANGES_TO_SELECT changes that are
 // under 24 hours or under 72 hours old, and then selecting additional changes
 // from the over 72 hours group to make a total of TOTAL_CHANGES_TO_SELECT changes.
-async fn get_community_review_changes(context: &ServiceContext) -> Vec<Change> {
+// Returns a tuple of (selected_changes, total_community_review_count)
+async fn get_community_review_changes(
+    context: &ServiceContext,
+) -> (Vec<Change>, usize) {
     // Use existing changes_by_owner_time function to get changes
     let changes_by_time = changes_by_owner_time(context, None, None);
 
@@ -80,6 +83,7 @@ async fn get_community_review_changes(context: &ServiceContext) -> Vec<Change> {
     // Collect changes in CommunityReview state, separating into recent and older groups
     let mut recent_changes = Vec::new();
     let mut older_changes = Vec::new();
+    let mut total_community_review_count = 0;
 
     // Process all time intervals in a single iteration
     for time_interval in [
@@ -96,6 +100,7 @@ async fn get_community_review_changes(context: &ServiceContext) -> Vec<Change> {
             if let Some(change) = ctx.changes.get(id) {
                 // Double-check that the change is actually in CommunityReview state
                 if matches!(change.review_state, ReviewState::CommunityReview) {
+                    total_community_review_count += 1;
                     // Categorize changes based on time interval
                     match time_interval {
                         TimeInterval::Under24Hours
@@ -127,7 +132,7 @@ async fn get_community_review_changes(context: &ServiceContext) -> Vec<Change> {
     let older_count = std::cmp::min(additional_count, older_changes.len());
     selected_changes.extend(older_changes[..older_count].to_vec());
 
-    selected_changes
+    (selected_changes, total_community_review_count)
 }
 
 // Send community review reminder to Discord
@@ -136,16 +141,18 @@ async fn send_community_review_reminder(
     http: &serenity::Http,
     channel_id: u64,
 ) {
-    let changes = get_community_review_changes(context).await;
+    let (changes, total_count) = get_community_review_changes(context).await;
 
     if changes.is_empty() {
         return;
     }
 
-    let mut message =
-        String::from("Want to help with reviews?  Here's a few:\n\n");
+    let mut embed = serenity::CreateEmbed::new()
+        .title("Review Reminder")
+        .description("Want to help with reviews? Here are a few...")
+        .color((38, 139, 210)); // Blue color
 
-    for change in changes {
+    for change in &changes {
         let change_url = format!(
             "https://gerrit.openbmc.org/c/{}/+/{}",
             change.change.project, change.change.id_number
@@ -156,27 +163,41 @@ async fn send_community_review_reminder(
         let duration = now.signed_duration_since(change.review_state_updated);
         let waiting_time = format_duration(duration);
 
-        message.push_str(&format!(
-            "- **{}**: [{}]({}) (+{}/-{}, waiting **{}**)\n",
-            change.change.project,
+        let field_value = format!(
+            "[{}]({}) (+{}/-{})",
             change.change.subject,
             change_url,
             change.change.insertions,
             change.change.deletions,
-            waiting_time
+        );
+
+        embed = embed.field(
+            format!("{} - waiting {}", change.change.project, waiting_time),
+            field_value,
+            false, // Inline: false means each field will be on its own line
+        );
+    }
+
+    // Add footer with count of additional changes
+    let additional_count = total_count.saturating_sub(changes.len());
+    if additional_count > 0 {
+        let footer = serenity::CreateEmbedFooter::new(format!(
+            "And there are {} more...",
+            additional_count
         ));
+        embed = embed.footer(footer);
     }
 
     // Add webserver link if WEBSERVER_HOSTNAME is set
     if let Ok(hostname) = std::env::var("WEBSERVER_HOSTNAME") {
-        message.push_str(&format!(
-            "\nSee more at https://{}/bot/report",
-            hostname
-        ));
+        embed = embed.url(format!("https://{}/bot/report", hostname));
     }
 
     let channel_id = serenity::ChannelId::new(channel_id);
-    if let Err(e) = channel_id.say(http, message).await {
+    if let Err(e) = channel_id
+        .send_message(http, serenity::CreateMessage::new().add_embed(embed))
+        .await
+    {
         error!("Failed to send message to Discord channel: {}", e);
     }
 }
