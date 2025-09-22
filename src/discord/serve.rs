@@ -14,8 +14,8 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, ServiceContext, Error>;
 
 // Constants for community review change selection
-const TOTAL_CHANGES_TO_SELECT: usize = 5;
-const RECENT_CHANGES_TO_SELECT: usize = 4;
+const TOTAL_CHANGES_TO_SELECT: usize = 10;
+const RECENT_CHANGES_TO_SELECT: usize = 8;
 
 // Give a report of outstanding changes.
 #[poise::command(slash_command, prefix_command, rename = "obmc-report")]
@@ -257,7 +257,7 @@ async fn community_review_reminder_task(
             .unwrap()
             .with_nanosecond(0)
             .unwrap()
-            + chrono::Duration::hours(2);
+            + chrono::Duration::hours(3);
 
         let duration = next_hour.signed_duration_since(now);
         let seconds_until_next_hour = duration.num_seconds() as u64 + 1;
