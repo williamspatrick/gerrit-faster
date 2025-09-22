@@ -257,7 +257,7 @@ async fn community_review_reminder_task(
             .unwrap()
             .with_nanosecond(0)
             .unwrap()
-            + chrono::Duration::hours(1);
+            + chrono::Duration::hours(2);
 
         let duration = next_hour.signed_duration_since(now);
         let seconds_until_next_hour = duration.num_seconds() as u64 + 1;
