@@ -8,6 +8,7 @@ use crate::context::ServiceContext;
 use chrono::Timelike;
 use poise::serenity_prelude as serenity;
 use rand::prelude::*;
+use rand::rng;
 use tracing::{error, info};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -117,7 +118,7 @@ async fn get_community_review_changes(
     }
 
     // Randomly shuffle both groups
-    let mut rng = thread_rng();
+    let mut rng = rng();
     recent_changes.shuffle(&mut rng);
     older_changes.shuffle(&mut rng);
 
