@@ -124,7 +124,7 @@ impl GerritConnection for Connection {
         let result = self
             .execute_request(
                 reqwest::Client::new().get(
-                    "https://gerrit.openbmc.org/a/changes/?q=status:open+-is:wip&o=LABELS&o=DETAILED_ACCOUNTS&no-limit",
+                    "https://gerrit.openbmc.org/a/changes/?q=status:open+-is:wip&o=LABELS&o=DETAILED_ACCOUNTS&o=CURRENT_REVISION&o=CURRENT_FILES&no-limit",
                 ),
                 |_| false,
             )
@@ -144,7 +144,7 @@ impl GerritConnection for Connection {
         let result = self
             .execute_request(
                 reqwest::Client::new().get(
-                    "https://gerrit.openbmc.org/a/changes/?q=-age:4h&o=LABELS&o=DETAILED_ACCOUNTS&no-limit",
+                    "https://gerrit.openbmc.org/a/changes/?q=-age:4h&o=LABELS&o=DETAILED_ACCOUNTS&o=CURRENT_REVISION&o=CURRENT_FILES&no-limit",
                 ),
                 |_| false,
             )

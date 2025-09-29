@@ -68,6 +68,14 @@ pub enum ChangeStatus {
     Abandoned,
 }
 
+#[derive(Deserialize, Debug, Clone)]
+pub struct FileInfo {}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct RevisionInfo {
+    pub files: HashMap<String, FileInfo>,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct ChangeInfoRaw {
     pub id: String,
@@ -96,6 +104,9 @@ pub struct ChangeInfoRaw {
     pub labels: HashMap<String, LabelInfoRaw>,
     #[serde(default)]
     pub submit_records: Vec<SubmitRecord>,
+
+    pub current_revision: String,
+    pub revisions: HashMap<String, RevisionInfo>,
 }
 
 #[derive(Debug, Clone)]
@@ -121,6 +132,9 @@ pub struct ChangeInfo {
 
     pub labels: HashMap<String, LabelInfo>,
     pub submit_records: Vec<SubmitRecord>,
+
+    pub current_revision: String,
+    pub revisions: HashMap<String, RevisionInfo>,
 }
 
 impl From<ChangeInfoRaw> for ChangeInfo {
@@ -161,6 +175,8 @@ impl From<ChangeInfoRaw> for ChangeInfo {
                 .map(|(key, value)| (key, Into::into(value)))
                 .collect(),
             submit_records: raw.submit_records.clone(),
+            current_revision: raw.current_revision,
+            revisions: raw.revisions.clone(),
         }
     }
 }
