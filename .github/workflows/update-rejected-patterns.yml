@@ -26,7 +26,7 @@ jobs:
         run: ./scripts/download-rejected-patterns
 
       - name: Format files
-        run: ./scripts/format
+        run: npx prettier --write "**/*.{css,html,json,yaml,yml}"
 
       - name: Check for changes
         id: changes
