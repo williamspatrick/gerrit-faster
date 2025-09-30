@@ -79,10 +79,16 @@ fn community_file(
     false
 }
 
+fn autobump_topic(change: &ChangeInfo) -> bool {
+    change.topic == "autobump"
+}
+
 pub fn should_include_change(change: &ChangeInfo) -> bool {
     let config = CommunityPatternsConfig::from_str(include_str!(
         "../../config/rejected_patterns.yaml"
     ));
 
-    community_repo(change, &config) && community_file(change, &config)
+    community_repo(change, &config)
+        && community_file(change, &config)
+        && !autobump_topic(change)
 }
