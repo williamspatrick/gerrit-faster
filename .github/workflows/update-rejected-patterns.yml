@@ -1,0 +1,53 @@
+name: Update rejected patterns
+
+on:
+  schedule:
+    # Run every Monday at 00:00 UTC
+    - cron: "0 0 * * 1"
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  update-rejected-patterns:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Install Prettier
+        run: npm install --save-dev prettier@3.6.2
+
+      - name: Download rejected patterns
+        run: ./scripts/download-rejected-patterns
+
+      - name: Format files
+        run: ./scripts/format
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if ! git diff --exit-code config/rejected_patterns.yaml; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message:
+            "Update rejected patterns\n\nAutomated update of rejected patterns
+            from source."
+          title: "Update rejected patterns"
+          body:
+            "This PR updates the rejected patterns configuration file with the
+            latest data from source."
+          branch: "update-rejected-patterns"
+          delete-branch: true
