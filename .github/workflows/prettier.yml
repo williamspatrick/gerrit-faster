@@ -18,6 +18,12 @@ jobs:
         with:
           node-version: "lts/*"
 
+      - name: Cache Prettier install
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: prettier-modules-${{ runner.os }}-3.6.2
+
       - name: Install Prettier
         run: npm install --save-dev prettier@3.6.2
 
