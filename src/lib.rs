@@ -1,5 +1,6 @@
 pub mod changes {
     pub mod container;
+    pub mod filter;
     pub mod report;
     pub mod serve;
     pub mod status;

@@ -1,7 +1,7 @@
-use crate::changes as Changes;
 use crate::changes::container::Change;
+use crate::changes::filter::should_include_change;
 use crate::changes::report::{
-    self as ChangeReport, TimeInterval, changes_by_owner_time,
+    TimeInterval, changes_by_owner_time, report_by_time,
 };
 use crate::changes::status::{NextStepOwner, ReviewState};
 use crate::context::ServiceContext;
@@ -26,7 +26,7 @@ async fn report(
 ) -> Result<(), Error> {
     let service = ctx.data().clone();
 
-    let report = ChangeReport::report_by_time(&service, project.clone(), None);
+    let report = report_by_time(&service, project.clone(), None);
 
     let response = if let Some(ref project_name) = project {
         format!("Project {}:\n```\n{}\n```", project_name, report)
@@ -44,7 +44,7 @@ async fn review_status(
     ctx: Context<'_>,
     #[description = "Change ID"] change_id: String,
 ) -> Result<(), Error> {
-    let change: Option<Changes::container::Change>;
+    let change: Option<Change>;
     {
         let changes = &ctx.data().lock().unwrap().changes;
 
@@ -101,15 +101,18 @@ async fn get_community_review_changes(
             if let Some(change) = ctx.changes.get(id) {
                 // Double-check that the change is actually in CommunityReview state
                 if matches!(change.review_state, ReviewState::CommunityReview) {
-                    total_community_review_count += 1;
-                    // Categorize changes based on time interval
-                    match time_interval {
-                        TimeInterval::Under24Hours
-                        | TimeInterval::Under72Hours => {
-                            recent_changes.push(change);
-                        }
-                        _ => {
-                            older_changes.push(change);
+                    // Apply the community filter
+                    if should_include_change(&change.change) {
+                        total_community_review_count += 1;
+                        // Categorize changes based on time interval
+                        match time_interval {
+                            TimeInterval::Under24Hours
+                            | TimeInterval::Under72Hours => {
+                                recent_changes.push(change);
+                            }
+                            _ => {
+                                older_changes.push(change);
+                            }
                         }
                     }
                 }

@@ -14,9 +14,11 @@ dotenv = "0.15.0"
 enum-map = "2.7.3"
 poise = "0.6.1"
 rand = { version = "0.9", features = ["default"] }
+regex = "1.11"
 reqwest = { version = "0.12.23", features = ["json"] }
 serde = "1.0.228"
 serde_json = "1.0.145"
+serde_yaml = "0.9"
 tokio = "1.47.1"
 tower = "0.5.2"
 tracing = "0.1.41"
