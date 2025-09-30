@@ -83,6 +83,8 @@ pub struct ChangeInfoRaw {
     pub _number: u64,
     pub project: String,
     pub branch: String,
+    #[serde(default)]
+    pub topic: String,
 
     pub subject: String,
     pub owner: AccountInfo,
@@ -116,6 +118,7 @@ pub struct ChangeInfo {
     pub change_id: String,
     pub project: String,
     pub branch: String,
+    pub topic: String,
 
     pub subject: String,
     pub owner: AccountInfo,
@@ -145,6 +148,7 @@ impl From<ChangeInfoRaw> for ChangeInfo {
             change_id: raw.change_id,
             project: raw.project,
             branch: raw.branch,
+            topic: raw.topic,
             subject: raw.subject,
             owner: raw.owner,
             created: DateTime::from_naive_utc_and_offset(
