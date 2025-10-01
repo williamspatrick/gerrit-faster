@@ -344,6 +344,16 @@ body.dark-mode .change-card h4 {
   color: var(--base1);
 }
 
+/* Company-specific changes */
+.change-card.company-change {
+  border-left: 4px solid var(--solar-orange);
+  display: none;
+}
+
+body.dark-mode .change-card.company-change {
+  border-left: 4px solid var(--solar-orange);
+}
+
 /* Header button styles */
 .header {
   position: fixed;
