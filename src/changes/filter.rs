@@ -1,5 +1,5 @@
 use crate::gerrit::data::ChangeInfo;
-use regex::Regex;
+use fancy_regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -28,7 +28,7 @@ fn community_repo(
 
     for pattern in &config.rejected_project_regex {
         if let Ok(regex) = Regex::new(pattern) {
-            if regex.is_match(&change.project) {
+            if regex.is_match(&change.project).unwrap_or(false) {
                 return false;
             }
         }
@@ -69,7 +69,7 @@ fn community_file(
         if !config.rejected_files.contains(&file_path.to_string())
             && !all_regex_patterns
                 .iter()
-                .any(|regex| regex.is_match(file_path))
+                .any(|regex| regex.is_match(file_path).unwrap_or(false))
         {
             return true;
         }
