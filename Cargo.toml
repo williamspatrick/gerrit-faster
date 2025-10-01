@@ -12,9 +12,9 @@ clap = { version = "4.5.48", features = ["derive"] }
 comfy-table = "7.2.1"
 dotenv = "0.15.0"
 enum-map = "2.7.3"
+fancy-regex = "0.13"
 poise = "0.6.1"
 rand = { version = "0.9", features = ["default"] }
-regex = "1.11"
 reqwest = { version = "0.12.23", features = ["json"] }
 serde = "1.0.228"
 serde_json = "1.0.145"
