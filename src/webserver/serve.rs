@@ -1,3 +1,4 @@
+use crate::changes::filter::should_include_change;
 use crate::changes::report::{self as ChangeReport, TimeInterval};
 use crate::changes::{self as Changes, status::NextStepOwner};
 use crate::context::ServiceContext;
@@ -104,7 +105,14 @@ fn list_of_changes(
                 let change_data_opt =
                     context.lock().unwrap().changes.get(change);
                 if let Some(change_data) = change_data_opt {
-                    result += "<div class=\"change-card\">\n";
+                    result += &format!(
+                        "<div class=\"change-card{}\">\n",
+                        if should_include_change(&change_data.change) {
+                            ""
+                        } else {
+                            " company-change"
+                        }
+                    );
                     result += &format!(
                         "<div class=\"project-name\">{}</div>\n",
                         change_data.change.project

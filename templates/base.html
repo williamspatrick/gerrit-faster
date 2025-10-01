@@ -7,6 +7,14 @@
   <body>
     <div class="header">
       <div class="header-buttons">
+        <button
+          id="company-toggle"
+          onclick="toggleCompanyChanges()"
+          title="Toggle company-specific changes"
+          style="display: none"
+        >
+          🏢
+        </button>
         <button id="home-button" onclick="goHome()" title="Home">🏠</button>
         <div class="theme-toggle">
           <button id="theme-toggle" onclick="toggleTheme()">
@@ -56,6 +64,17 @@
         if (path === "/bot" || path === "/bot/") {
           homeButton.style.display = "none";
         }
+
+        // Show company toggle button only on report pages and user pages
+        // Exclude report-by-repo page as it doesn't show individual changes
+        const companyToggle = document.getElementById("company-toggle");
+        if (
+          (path.includes("/bot/report") &&
+            !path.includes("/bot/report-by-repo")) ||
+          path.includes("/bot/user")
+        ) {
+          companyToggle.style.display = "flex";
+        }
       });
 
       // Toggle section visibility
@@ -69,6 +88,31 @@
           section.style.display = "none";
           button.classList.add("collapsed");
         }
+      }
+
+      // Toggle company-specific changes visibility
+      function toggleCompanyChanges() {
+        const companyChanges = document.querySelectorAll(
+          ".change-card.company-change",
+        );
+        const button = document.getElementById("company-toggle");
+        // By default, company changes are hidden (display: none in CSS)
+        // So we check if they are currently visible
+        const isCurrentlyVisible =
+          companyChanges[0] && companyChanges[0].style.display !== "none";
+
+        // If any company change is visible, we hide them all, otherwise we show them
+        const shouldShow = isCurrentlyVisible === false;
+
+        companyChanges.forEach((card) => {
+          card.style.display = shouldShow ? "block" : "none";
+        });
+
+        // Update button text/icon based on state
+        button.textContent = shouldShow ? "🌍" : "🏢";
+        button.title = shouldShow
+          ? "Hide company-specific changes"
+          : "Show company-specific changes";
       }
     </script>
   </body>
