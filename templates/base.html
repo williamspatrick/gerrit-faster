@@ -90,27 +90,27 @@
         }
       }
 
+      // Keep track of company toggle state
+      let companyChangesVisible = false;
+
       // Toggle company-specific changes visibility
       function toggleCompanyChanges() {
         const companyChanges = document.querySelectorAll(
           ".change-card.company-change",
         );
         const button = document.getElementById("company-toggle");
-        // By default, company changes are hidden (display: none in CSS)
-        // So we check if they are currently visible
-        const isCurrentlyVisible =
-          companyChanges[0] && companyChanges[0].style.display !== "none";
 
-        // If any company change is visible, we hide them all, otherwise we show them
-        const shouldShow = isCurrentlyVisible === false;
+        // Toggle the visibility state
+        companyChangesVisible = !companyChangesVisible;
 
+        // Apply the visibility state to all company change cards
         companyChanges.forEach((card) => {
-          card.style.display = shouldShow ? "block" : "none";
+          card.style.display = companyChangesVisible ? "block" : "none";
         });
 
         // Update button text/icon based on state
-        button.textContent = shouldShow ? "🌍" : "🏢";
-        button.title = shouldShow
+        button.textContent = companyChangesVisible ? "🌍" : "🏢";
+        button.title = companyChangesVisible
           ? "Hide company-specific changes"
           : "Show company-specific changes";
       }
