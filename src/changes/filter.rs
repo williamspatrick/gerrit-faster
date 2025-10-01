@@ -27,10 +27,11 @@ fn community_repo(
     }
 
     for pattern in &config.rejected_project_regex {
-        if let Ok(regex) = Regex::new(pattern) {
-            if regex.is_match(&change.project).unwrap_or(false) {
-                return false;
-            }
+        let regex = Regex::new(pattern).unwrap_or_else(|_| {
+            panic!("Failed to compile regex pattern: {}", pattern)
+        });
+        if regex.is_match(&change.project).unwrap_or(false) {
+            return false;
         }
     }
 
@@ -46,8 +47,8 @@ fn community_file(
         None => return true,
     };
 
-    // Compile all regex patterns for this change using iterator chains
-    let all_regex_patterns: Vec<Regex> = config
+    // Collect all regex patterns for this change
+    let all_regex_patterns: Vec<&String> = config
         .rejected_file_regex
         .get("all")
         .into_iter()
@@ -59,7 +60,16 @@ fn community_file(
                 .into_iter()
                 .flatten(),
         )
-        .filter_map(|pattern| Regex::new(pattern).ok())
+        .collect();
+
+    // Compile all regex patterns, aborting on any failure
+    let all_regex_patterns: Vec<Regex> = all_regex_patterns
+        .into_iter()
+        .map(|pattern| {
+            Regex::new(pattern).unwrap_or_else(|_| {
+                panic!("Failed to compile regex pattern: {}", pattern)
+            })
+        })
         .collect();
 
     // Check if all files match rejected patterns
