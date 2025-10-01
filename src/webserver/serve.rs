@@ -18,10 +18,10 @@ pub async fn serve(context: ServiceContext, port: u16) {
         .route("/bot", get(root))
         .route("/bot/report", get(report_overall))
         .route("/bot/report-by-repo", get(report_repo))
-        .route("/bot/report/{*project}", get(report_project))
+        .route("/bot/report/{*projects}", get(report_projects))
         .route("/bot/review-status/{id}", get(review_status))
         .route("/bot/style.css", get(css))
-        .route("/bot/user/{id}", get(report_user))
+        .route("/bot/user/{*usernames}", get(report_users))
         .layer(ServiceBuilder::new().layer(Extension(context)));
 
     // run it
@@ -183,46 +183,107 @@ async fn report_repo(
     Html(template.render().unwrap())
 }
 
-async fn report_project(
-    Path(project): Path<String>,
+async fn report_projects(
+    Path(projects): Path<String>,
     Extension(context): Extension<ServiceContext>,
 ) -> Html<String> {
     // Remove the leading slash that comes with the wildcard pattern
-    let project = project.strip_prefix('/').unwrap_or(&project).to_string();
+    let projects = projects.strip_prefix('/').unwrap_or(&projects).to_string();
 
-    let changes = ChangeReport::changes_by_owner_time(
-        &context,
-        Some(project.clone()),
-        None,
-    );
-    let report_text = ChangeReport::report_by_owner_time(&changes);
-    let changes_text = list_of_changes(&changes, &context, false);
+    // Split projects by space to get multiple project names
+    let project_names: Vec<&str> = projects.split_whitespace().collect();
+
+    // Combine changes from all projects
+    let mut combined_changes = ChangeReport::ChangesByOwnerAndTime::default();
+
+    for project_name in &project_names {
+        let changes = ChangeReport::changes_by_owner_time(
+            &context,
+            Some(project_name.to_string()),
+            None,
+        );
+
+        // Merge changes into combined_changes
+        for time_interval in [
+            TimeInterval::Under24Hours,
+            TimeInterval::Under72Hours,
+            TimeInterval::Under2Weeks,
+            TimeInterval::Under8Weeks,
+            TimeInterval::Over8Weeks,
+        ] {
+            for owner in [
+                NextStepOwner::Author,
+                NextStepOwner::Community,
+                NextStepOwner::Maintainer,
+            ] {
+                let change_ids = changes.get_changes(time_interval, owner);
+                for id in change_ids {
+                    combined_changes.increment(time_interval, owner, id);
+                }
+            }
+        }
+    }
+
+    let report_text = ChangeReport::report_by_owner_time(&combined_changes);
+    let changes_text = list_of_changes(&combined_changes, &context, false);
 
     let template = ProjectTemplate {
-        project,
+        project: projects,
         report_text,
         changes_text,
     };
     Html(template.render().unwrap())
 }
 
-async fn report_user(
-    Path(username): Path<String>,
+async fn report_users(
+    Path(usernames): Path<String>,
     Extension(context): Extension<ServiceContext>,
 ) -> Html<String> {
     // Remove the leading slash that comes with the wildcard pattern
-    let username = username.strip_prefix('/').unwrap_or(&username).to_string();
+    let usernames = usernames
+        .strip_prefix('/')
+        .unwrap_or(&usernames)
+        .to_string();
 
-    let changes = ChangeReport::changes_by_owner_time(
-        &context,
-        None,
-        Some(username.clone()),
-    );
-    let report_text = ChangeReport::report_by_owner_time(&changes);
-    let changes_text = list_of_changes(&changes, &context, true);
+    // Split usernames by space to get multiple usernames
+    let username_list: Vec<&str> = usernames.split_whitespace().collect();
+
+    // Combine changes from all users
+    let mut combined_changes = ChangeReport::ChangesByOwnerAndTime::default();
+
+    for username in &username_list {
+        let changes = ChangeReport::changes_by_owner_time(
+            &context,
+            None,
+            Some(username.to_string()),
+        );
+
+        // Merge changes into combined_changes
+        for time_interval in [
+            TimeInterval::Under24Hours,
+            TimeInterval::Under72Hours,
+            TimeInterval::Under2Weeks,
+            TimeInterval::Under8Weeks,
+            TimeInterval::Over8Weeks,
+        ] {
+            for owner in [
+                NextStepOwner::Author,
+                NextStepOwner::Community,
+                NextStepOwner::Maintainer,
+            ] {
+                let change_ids = changes.get_changes(time_interval, owner);
+                for id in change_ids {
+                    combined_changes.increment(time_interval, owner, id);
+                }
+            }
+        }
+    }
+
+    let report_text = ChangeReport::report_by_owner_time(&combined_changes);
+    let changes_text = list_of_changes(&combined_changes, &context, true);
 
     let template = UserTemplate {
-        username,
+        username: usernames,
         report_text,
         changes_text,
     };
