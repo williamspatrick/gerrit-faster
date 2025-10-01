@@ -227,8 +227,15 @@ async fn report_projects(
     let report_text = ChangeReport::report_by_owner_time(&combined_changes);
     let changes_text = list_of_changes(&combined_changes, &context, false);
 
+    // If there are multiple projects, display "Projects (count)" instead of listing them all
+    let display_name = if projects.contains(' ') {
+        format!("Projects ({})", project_names.len())
+    } else {
+        projects.clone()
+    };
+
     let template = ProjectTemplate {
-        project: projects,
+        project: display_name,
         report_text,
         changes_text,
     };
@@ -282,8 +289,15 @@ async fn report_users(
     let report_text = ChangeReport::report_by_owner_time(&combined_changes);
     let changes_text = list_of_changes(&combined_changes, &context, true);
 
+    // If there are multiple users, display "Users (count)" instead of listing them all
+    let display_name = if usernames.contains(' ') {
+        format!("Users ({})", username_list.len())
+    } else {
+        usernames.clone()
+    };
+
     let template = UserTemplate {
-        username: usernames,
+        username: display_name,
         report_text,
         changes_text,
     };
