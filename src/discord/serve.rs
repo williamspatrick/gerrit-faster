@@ -9,7 +9,7 @@ use chrono::Timelike;
 use poise::serenity_prelude as serenity;
 use rand::prelude::*;
 use rand::rng;
-use tracing::{error, info};
+use tracing::{error, warn};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, ServiceContext, Error>;
@@ -244,7 +244,7 @@ async fn community_review_reminder_task(
         },
         Err(_) => {
             // Channel ID not set, exit the task
-            info!(
+            warn!(
                 "DISCORD_REVIEW_CHANNEL_ID not set, community review reminders disabled."
             );
             return;
