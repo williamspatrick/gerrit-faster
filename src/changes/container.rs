@@ -3,7 +3,7 @@ use crate::gerrit::data::ChangeInfo as GerritChange;
 use crate::gerrit::data::ChangeStatus as GerritChangeStatus;
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
-use tracing::info;
+use tracing::debug;
 
 #[derive(Debug, Clone)]
 pub struct Change {
@@ -27,20 +27,20 @@ impl Container {
     }
 
     pub fn set(&mut self, change: &GerritChange) {
-        info!("Change: {:?}", change);
+        debug!("Change: {:?}", change);
         if change.status != GerritChangeStatus::New {
             if self.changes.contains_key(&change.id_number) {
-                info!("Dropping due to status={:?}", change.status);
+                debug!("Dropping due to status={:?}", change.status);
                 self.remove(change);
             }
         } else if change.work_in_progress {
             if self.changes.contains_key(&change.id_number) {
-                info!("Dropping due to WIP");
+                debug!("Dropping due to WIP");
                 self.remove(change);
             }
         } else {
             let review_state = Status::review_state(change);
-            info!("Change Status = {:?}", review_state);
+            debug!("Change Status = {:?}", review_state);
 
             let review_state_updated =
                 if let Some(i) = self.changes.get(&change.id_number) {

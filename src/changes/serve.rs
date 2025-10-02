@@ -3,7 +3,7 @@ use crate::gerrit::connection::GerritConnection;
 use crate::gerrit::data::{ApprovalInfo, ChangeInfo};
 use chrono::Utc;
 use tokio::time::{Duration, sleep};
-use tracing::info;
+use tracing::{info, warn};
 
 async fn abandon_older_than_two_years(
     context: &ServiceContext,
@@ -38,7 +38,7 @@ async fn abandon_older_than_two_years(
         return true;
     }
 
-    info!("Was not able to abandon change {}.", change.id);
+    warn!("Was not able to abandon change {}.", change.id);
     false
 }
 
@@ -94,7 +94,7 @@ async fn abandon_older_than_one_year_and_bad_ci(
         info!("Successfully abandoned change {}", change.id);
         return true;
     }
-    info!("Was not able to abandon change {}", change.id);
+    warn!("Was not able to abandon change {}", change.id);
     false
 }
 
