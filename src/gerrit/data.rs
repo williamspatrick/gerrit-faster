@@ -107,7 +107,9 @@ pub struct ChangeInfoRaw {
     #[serde(default)]
     pub submit_records: Vec<SubmitRecord>,
 
+    #[serde(default)]
     pub current_revision: String,
+    #[serde(default)]
     pub revisions: HashMap<String, RevisionInfo>,
 }
 
