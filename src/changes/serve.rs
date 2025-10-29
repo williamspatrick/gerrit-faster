@@ -1,9 +1,9 @@
 use crate::context::ServiceContext;
 use crate::gerrit::connection::GerritConnection;
 use crate::gerrit::data::{ApprovalInfo, ChangeInfo};
-use chrono::Utc;
+use chrono::{TimeZone, Utc};
 use tokio::time::{Duration, sleep};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 async fn abandon_older_than_two_years(
     context: &ServiceContext,
@@ -99,15 +99,18 @@ async fn abandon_older_than_one_year_and_bad_ci(
 }
 
 pub async fn serve(context: ServiceContext) {
-    let mut first_time = true;
+    let mut last_full_sync = Utc.timestamp_opt(0, 0).unwrap();
 
     loop {
-        let changes = if first_time {
-            first_time = false;
-            context.get_gerrit().all_open_changes().await
-        } else {
-            context.get_gerrit().recent_changes().await
-        };
+        let changes =
+            if Utc::now().signed_duration_since(last_full_sync).num_days() >= 1
+            {
+                last_full_sync = Utc::now();
+                debug!("Performing daily full sync of open changes");
+                context.get_gerrit().all_open_changes().await
+            } else {
+                context.get_gerrit().recent_changes().await
+            };
 
         for change in &changes {
             context.lock().unwrap().changes.set(change);
