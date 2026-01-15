@@ -320,9 +320,14 @@ async fn review_status(
     }
 
     if let Some(change) = change {
+        let gerrit_url = format!(
+            "https://gerrit.openbmc.org/c/{}/+/{}",
+            change.change.project, change.change.id_number
+        );
         let template = ChangeTemplate {
             change_id,
             review_status: format!("{:?}", change.review_state),
+            gerrit_url,
         };
         Html(template.render().unwrap()).into_response()
     } else {

@@ -34,6 +34,7 @@ pub struct UserTemplate {
 pub struct ChangeTemplate {
     pub change_id: String,
     pub review_status: String,
+    pub gerrit_url: String,
 }
 
 #[derive(Template)]
