@@ -14,7 +14,7 @@ dotenv = "0.15.0"
 enum-map = "2.7.3"
 fancy-regex = "0.17"
 poise = "0.6.1"
-rand = { version = "0.9", features = ["default"] }
+rand = { version = "0.10", features = ["default"] }
 reqwest = { version = "0.13.1", features = ["json"] }
 serde = "1.0.228"
 serde_json = "1.0.149"
