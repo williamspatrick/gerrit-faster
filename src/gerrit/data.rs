@@ -56,6 +56,7 @@ pub enum SubmitRecordStatus {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct SubmitRecord {
+    #[serde(default)]
     pub rule_name: String,
     pub status: SubmitRecordStatus,
 }
