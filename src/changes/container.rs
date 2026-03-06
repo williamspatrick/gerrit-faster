@@ -33,9 +33,12 @@ impl Container {
                 debug!("Dropping due to status={:?}", change.status);
                 self.remove(change);
             }
-        } else if change.work_in_progress {
+        } else if change.work_in_progress
+            || change.subject.to_uppercase().starts_with("WIP:")
+            || change.subject.to_uppercase().starts_with("RFC:")
+        {
             if self.changes.contains_key(&change.id_number) {
-                debug!("Dropping due to WIP");
+                debug!("Dropping due to WIP/RFC");
                 self.remove(change);
             }
         } else {
