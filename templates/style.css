@@ -150,9 +150,41 @@ button:active {
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   padding: 15px;
+  position: relative;
   transition:
     transform 0.2s,
     box-shadow 0.2s;
+}
+
+.change-card .hide-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: none;
+  border: none;
+  color: var(--base01);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 5px;
+  line-height: 1;
+  margin: 0;
+  width: auto;
+  height: auto;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.change-card .hide-button:hover {
+  opacity: 1;
+  background: none;
+}
+
+body.dark-mode .change-card .hide-button {
+  color: var(--base1);
 }
 
 .change-card:hover {
