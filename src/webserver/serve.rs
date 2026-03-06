@@ -113,6 +113,7 @@ fn list_of_changes(
                             " company-change"
                         }
                     );
+                    result += "<button class=\"hide-button\" onclick=\"this.parentElement.style.display='none'\" title=\"Hide change\">×</button>\n";
                     result += &format!(
                         "<div class=\"project-name\">{}</div>\n",
                         change_data.change.project
