@@ -48,17 +48,12 @@ jobs:
 
       - name: Create Pull Request
         if: steps.changes.outputs.has_changes == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b update-rejected-patterns
-          git add config/rejected_patterns.yaml
-          git commit -m "Update rejected patterns" -m "Automated update of rejected patterns from source."
-          git push -f origin update-rejected-patterns
-          gh pr create \
-            --title "Update rejected patterns" \
-            --body "This PR updates the rejected patterns configuration file with the latest data from source." \
-            --base main \
-            --head update-rejected-patterns || echo "PR already exists"
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GH_PAT }}
+          add-paths: config/rejected_patterns.yaml
+          commit-message: "Update rejected patterns\n\nAutomated update of rejected patterns from source."
+          title: "Update rejected patterns"
+          body: "This PR updates the rejected patterns configuration file with the latest data from source."
+          branch: "update-rejected-patterns"
+          delete-branch: true
