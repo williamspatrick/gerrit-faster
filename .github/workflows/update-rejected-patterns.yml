@@ -52,8 +52,12 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
           add-paths: config/rejected_patterns.yaml
-          commit-message: "Update rejected patterns\n\nAutomated update of rejected patterns from source."
+          commit-message:
+            "Update rejected patterns\n\nAutomated update of rejected patterns
+            from source."
           title: "Update rejected patterns"
-          body: "This PR updates the rejected patterns configuration file with the latest data from source."
+          body:
+            "This PR updates the rejected patterns configuration file with the
+            latest data from source."
           branch: "update-rejected-patterns"
           delete-branch: true
