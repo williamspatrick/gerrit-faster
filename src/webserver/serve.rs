@@ -15,6 +15,7 @@ use tower::ServiceBuilder;
 pub async fn serve(context: ServiceContext, port: u16) {
     // build our application with a route
     let app = Router::new()
+        .route("/bot/health", get(health))
         .route("/bot", get(root))
         .route("/bot/report", get(report_overall))
         .route("/bot/report-by-repo", get(report_repo))
@@ -34,6 +35,10 @@ pub async fn serve(context: ServiceContext, port: u16) {
 async fn root(Extension(_context): Extension<ServiceContext>) -> Html<String> {
     let template = RootTemplate;
     Html(template.render().unwrap())
+}
+
+async fn health() -> &'static str {
+    "ok"
 }
 
 fn list_of_changes(
