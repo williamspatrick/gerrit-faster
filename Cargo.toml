@@ -11,7 +11,7 @@ chrono = "0.4.45"
 clap = { version = "4.6.1", features = ["derive"] }
 comfy-table = "7.2.2"
 dotenv = "0.15.0"
-enum-map = "2.7.3"
+enum-map = "3.1.0"
 fancy-regex = "0.18"
 poise = "0.6.1"
 rand = { version = "0.10", features = ["default"] }
