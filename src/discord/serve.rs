@@ -5,11 +5,12 @@ use crate::changes::report::{
 };
 use crate::changes::status::{NextStepOwner, ReviewState};
 use crate::context::ServiceContext;
-use chrono::Timelike;
+use chrono::{DateTime, Days, TimeZone, Utc};
+use chrono_tz::America::Detroit;
 use poise::serenity_prelude as serenity;
 use rand::prelude::*;
 use rand::rng;
-use tracing::{error, warn};
+use tracing::{error, info, warn};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, ServiceContext, Error>;
@@ -228,6 +229,32 @@ fn format_duration(duration: chrono::Duration) -> String {
     }
 }
 
+// Next 10am in America/Detroit (Eastern), returned as UTC.
+fn next_10am_detroit(now: DateTime<Utc>) -> DateTime<Utc> {
+    let local_now = now.with_timezone(&Detroit);
+    let today = local_now.date_naive();
+
+    // Candidate for 10am today in Detroit.
+    let candidate_today =
+        Detroit.from_local_datetime(&today.and_hms_opt(10, 0, 0).unwrap());
+    // 10am never falls in a DST transition, so a single mapping
+    // is expected; fall back to earliest just in case.
+    if let Some(candidate) = candidate_today.earliest() {
+        let candidate_utc = candidate.with_timezone(&Utc);
+        if candidate_utc > now {
+            return candidate_utc;
+        }
+    }
+
+    // Otherwise schedule for 10am tomorrow.
+    let tomorrow = today.checked_add_days(Days::new(1)).unwrap();
+    Detroit
+        .from_local_datetime(&tomorrow.and_hms_opt(10, 0, 0).unwrap())
+        .earliest()
+        .expect("10am Detroit should always map to a valid time")
+        .with_timezone(&Utc)
+}
+
 // Periodic task for sending community review reminders
 async fn community_review_reminder_task(
     context: ServiceContext,
@@ -252,23 +279,20 @@ async fn community_review_reminder_task(
     };
 
     loop {
-        // Calculate delay until next hour using wall clock time
-        let now = chrono::Utc::now();
-        let next_hour = now
-            .with_minute(0)
-            .unwrap()
-            .with_second(0)
-            .unwrap()
-            .with_nanosecond(0)
-            .unwrap()
-            + chrono::Duration::hours(3);
+        // Sleep until the next 10am in Detroit (handles EST/EDT
+        // offsets and DST automatically via chrono-tz).
+        let now = Utc::now();
+        let next = next_10am_detroit(now);
+        let seconds_until_next = (next - now).num_seconds().max(1) as u64 + 1;
 
-        let duration = next_hour.signed_duration_since(now);
-        let seconds_until_next_hour = duration.num_seconds() as u64 + 1;
+        info!(
+            "Next Discord review reminder at {} Detroit time ({} UTC).",
+            next.with_timezone(&Detroit),
+            next,
+        );
 
-        // Sleep until next hour
         tokio::time::sleep(tokio::time::Duration::from_secs(
-            seconds_until_next_hour,
+            seconds_until_next,
         ))
         .await;
 
@@ -321,4 +345,52 @@ pub async fn serve(context: ServiceContext) {
         .framework(framework)
         .await;
     client.unwrap().start().await.unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::TimeZone;
+    use chrono::Timelike;
+
+    #[test]
+    fn morning_edt_schedules_today() {
+        // 09:00 EDT = 13:00 UTC, before 10am cutoff.
+        let now = Utc.with_ymd_and_hms(2026, 9, 10, 13, 0, 0).unwrap();
+        let next = next_10am_detroit(now);
+        assert_eq!(next, Utc.with_ymd_and_hms(2026, 9, 10, 14, 0, 0).unwrap());
+    }
+
+    #[test]
+    fn afternoon_edt_schedules_tomorrow() {
+        // 11:00 EDT = 15:00 UTC, after 10am cutoff.
+        let now = Utc.with_ymd_and_hms(2026, 9, 10, 15, 0, 0).unwrap();
+        let next = next_10am_detroit(now);
+        assert_eq!(next, Utc.with_ymd_and_hms(2026, 9, 11, 14, 0, 0).unwrap());
+    }
+
+    #[test]
+    fn morning_est_schedules_today() {
+        // 08:00 EST = 13:00 UTC in January.
+        let now = Utc.with_ymd_and_hms(2026, 1, 15, 13, 0, 0).unwrap();
+        let next = next_10am_detroit(now);
+        assert_eq!(next, Utc.with_ymd_and_hms(2026, 1, 15, 15, 0, 0).unwrap());
+    }
+
+    #[test]
+    fn result_is_always_10am_detroit() {
+        for (y, m, d, h) in
+            [(2026, 9, 10, 0), (2026, 9, 10, 15), (2026, 1, 15, 13)]
+        {
+            let now = Utc.with_ymd_and_hms(y, m, d, h, 0, 0).unwrap();
+            let local = next_10am_detroit(now).with_timezone(&Detroit);
+            assert_eq!(
+                (local.hour(), local.minute()),
+                (10, 0),
+                "now={} gave local={}",
+                now,
+                local,
+            );
+        }
+    }
 }
