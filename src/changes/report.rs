@@ -204,8 +204,7 @@ where
 pub fn report_by_owner_time(changes: &ChangesByOwnerAndTime) -> String {
     let mut table = comfy_table::Table::new();
     table
-        .load_preset(comfy_table::presets::UTF8_FULL)
-        .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
+        .load_style(comfy_table::presets::UTF8_FULL.with_rounded_corners())
         .set_header(vec!["", "Community", "Maintainers", "Author"]);
 
     // Iterate over all time intervals and add rows dynamically
@@ -242,8 +241,7 @@ where
 {
     let mut table = comfy_table::Table::new();
     table
-        .load_preset(comfy_table::presets::UTF8_FULL)
-        .apply_modifier(comfy_table::modifiers::UTF8_ROUND_CORNERS)
+        .load_style(comfy_table::presets::UTF8_FULL.with_rounded_corners())
         .set_header(vec!["", "Community", "Maintainers", "Author"]);
 
     // Get all repos and sort them for consistent output
