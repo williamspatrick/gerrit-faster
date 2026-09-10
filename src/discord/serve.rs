@@ -5,7 +5,7 @@ use crate::changes::report::{
 };
 use crate::changes::status::{NextStepOwner, ReviewState};
 use crate::context::ServiceContext;
-use chrono::{DateTime, Days, TimeZone, Utc};
+use chrono::{DateTime, Datelike, Days, TimeZone, Utc, Weekday};
 use chrono_tz::America::Detroit;
 use poise::serenity_prelude as serenity;
 use rand::prelude::*;
@@ -229,30 +229,29 @@ fn format_duration(duration: chrono::Duration) -> String {
     }
 }
 
-// Next 10am in America/Detroit (Eastern), returned as UTC.
+// Next 10am on a weekday in America/Detroit, returned as UTC.
+// Weekends are skipped: notifications fire Monday-Friday only.
 fn next_10am_detroit(now: DateTime<Utc>) -> DateTime<Utc> {
     let local_now = now.with_timezone(&Detroit);
-    let today = local_now.date_naive();
+    let mut day = local_now.date_naive();
 
-    // Candidate for 10am today in Detroit.
-    let candidate_today =
-        Detroit.from_local_datetime(&today.and_hms_opt(10, 0, 0).unwrap());
-    // 10am never falls in a DST transition, so a single mapping
-    // is expected; fall back to earliest just in case.
-    if let Some(candidate) = candidate_today.earliest() {
-        let candidate_utc = candidate.with_timezone(&Utc);
-        if candidate_utc > now {
-            return candidate_utc;
+    loop {
+        // Skip Saturday and Sunday.
+        if !matches!(day.weekday(), Weekday::Sat | Weekday::Sun) {
+            let candidate = Detroit
+                .from_local_datetime(&day.and_hms_opt(10, 0, 0).unwrap());
+            // 10am never falls in a DST transition, so a single
+            // mapping is expected; fall back to earliest just in
+            // case.
+            if let Some(candidate) = candidate.earliest() {
+                let candidate_utc = candidate.with_timezone(&Utc);
+                if candidate_utc > now {
+                    return candidate_utc;
+                }
+            }
         }
+        day = day.checked_add_days(Days::new(1)).unwrap();
     }
-
-    // Otherwise schedule for 10am tomorrow.
-    let tomorrow = today.checked_add_days(Days::new(1)).unwrap();
-    Detroit
-        .from_local_datetime(&tomorrow.and_hms_opt(10, 0, 0).unwrap())
-        .earliest()
-        .expect("10am Detroit should always map to a valid time")
-        .with_timezone(&Utc)
 }
 
 // Periodic task for sending community review reminders
@@ -378,16 +377,55 @@ mod tests {
     }
 
     #[test]
+    fn friday_afternoon_schedules_monday() {
+        // Friday 11:00 EDT = 15:00 UTC, after 10am cutoff.
+        // Next weekday 10am is Monday 10:00 EDT = 14:00 UTC.
+        let now = Utc.with_ymd_and_hms(2026, 9, 11, 15, 0, 0).unwrap();
+        let next = next_10am_detroit(now);
+        assert_eq!(next, Utc.with_ymd_and_hms(2026, 9, 14, 14, 0, 0).unwrap());
+    }
+
+    #[test]
+    fn saturday_schedules_monday() {
+        // Saturday 10:00 EDT = 14:00 UTC.
+        let now = Utc.with_ymd_and_hms(2026, 9, 12, 14, 0, 0).unwrap();
+        let next = next_10am_detroit(now);
+        assert_eq!(next, Utc.with_ymd_and_hms(2026, 9, 14, 14, 0, 0).unwrap());
+    }
+
+    #[test]
+    fn sunday_schedules_monday() {
+        // Sunday 10:00 EDT = 14:00 UTC.
+        let now = Utc.with_ymd_and_hms(2026, 9, 13, 14, 0, 0).unwrap();
+        let next = next_10am_detroit(now);
+        assert_eq!(next, Utc.with_ymd_and_hms(2026, 9, 14, 14, 0, 0).unwrap());
+    }
+
+    #[test]
     fn result_is_always_10am_detroit() {
-        for (y, m, d, h) in
-            [(2026, 9, 10, 0), (2026, 9, 10, 15), (2026, 1, 15, 13)]
-        {
+        for (y, m, d, h) in [
+            (2026, 9, 10, 0),
+            (2026, 9, 10, 15),
+            (2026, 9, 11, 15),
+            (2026, 9, 12, 14),
+            (2026, 9, 13, 14),
+            (2026, 1, 15, 13),
+        ] {
             let now = Utc.with_ymd_and_hms(y, m, d, h, 0, 0).unwrap();
             let local = next_10am_detroit(now).with_timezone(&Detroit);
             assert_eq!(
                 (local.hour(), local.minute()),
                 (10, 0),
                 "now={} gave local={}",
+                now,
+                local,
+            );
+            assert!(
+                !matches!(
+                    local.weekday(),
+                    chrono::Weekday::Sat | chrono::Weekday::Sun
+                ),
+                "now={} scheduled on weekend: {}",
                 now,
                 local,
             );
