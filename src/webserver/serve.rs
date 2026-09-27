@@ -26,7 +26,7 @@ pub async fn serve(context: ServiceContext, port: u16) {
         .layer(ServiceBuilder::new().layer(Extension(context)));
 
     // run it
-    let addr = format!("127.0.0.1:{}", port);
+    let addr = format!("0.0.0.0:{}", port);
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     println!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
