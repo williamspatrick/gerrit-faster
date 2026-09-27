@@ -14,7 +14,7 @@ comfy-table = "8"
 dotenv = "0.15.0"
 enum-map = "3.1.0"
 fancy-regex = "0.19"
-poise = "0.6.1"
+poise = "0.7.0"
 rand = { version = "0.10", features = ["default"] }
 reqwest = { version = "0.13.4", features = ["json"] }
 serde = "1.0.228"
