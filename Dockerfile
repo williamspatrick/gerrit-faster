@@ -19,7 +19,17 @@ RUN rustup target add x86_64-unknown-linux-musl && \
 # Stage 2: Minimal runtime
 FROM alpine:3.24.1
 
-RUN apk add --no-cache libssl3 libgcc
+# Bound each attempt: apk has no built-in connect/read timeout, and a single
+# blackholed CDN edge node will otherwise hang the build forever (observed:
+# 2h+ and 7d+ hangs on dl-cdn.alpinelinux.org). Retrying re-resolves DNS and
+# typically lands on a healthy node.
+RUN for attempt in 1 2 3; do \
+        timeout 2m apk add --no-cache libssl3 libgcc && break; \
+        status=$?; \
+        if [ "$attempt" -eq 3 ]; then exit "$status"; fi; \
+        echo "apk add failed (attempt $attempt), retrying in 10s..."; \
+        sleep 10; \
+    done
 
 RUN addgroup -S app && adduser -S app -G app
 USER app
